@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 사용자 정의 함수 테스트앱(Hybrid)</title>
+
+    <script src="../js/MDHAdapter.3.1.1.min.js"></script>
+    <script  src="../js/jquery-latest.min.js"></script>
+    
+    <script type="text/javascript">
+        function run() {
+            // 사용자 플러그인 호출
+            MDHMgr.exec(
+                // 사용자 함수 명
+                'User.request',
+                // 사용자 함수 호출 성공
+                function(result) {
+                    console.log('result=' + result);
+                    $("#result").html("result = " + result);
+                },
+                // 사용자 함수 호출 실패
+                function(error) {
+                    console.log('error=' + error);
+                    $("#result").html("error= " + error);
+                },
+                // 사용자 함수 파라미터
+                'This is a TEST!'
+            );
+        }
+    </script>
+
+</head>
+<style>
+    .button {
+        --background-color: #4CAF50;
+        --border: none;
+        --color: white;
+        padding: 12px 32px;
+        --text-align: center;
+        --text-decoration: none;
+        --display: inline-block;
+        --font-size: 16px;
+        --margin: 4px 2px;
+        cursor: pointer;
+        font-family: "Lucica Console", Monaco, monospace;
+    }
+</style>
+<body style="background-color:white;">
+
+<h1>현장행정 테스트앱(Hybrid)</h1>
+<h2>User Plugin</h2>
+<br>
+
+<center>
+    <p><button class="button" onclick="run()">RUN</button></p>
+</center>
+<h5 id="result"></h5>
+</body>
+</html>

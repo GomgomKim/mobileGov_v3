@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 사용자 정보 테스트앱(Hybrid)</title>
+
+    <script src="../js/MDHAdapter.4.0.0.min.js"></script>
+    <script  src="../js/jquery-latest.min.js"></script>
+    
+    <script type="text/javascript">
+        function runInfo() {
+            // 인증 정보 조회
+            MDHBasic.SSO.getInfo(
+                // 인증 정보 조회 성공
+                function(result) {
+
+	                 var msg = '';
+	                 
+	                 for (var key in result) {
+	                 	msg += key + " = " + result[key] + "<br>"; 
+	                 }
+                 
+                	console.log('get = ' + msg);
+                	$("#result").html("OK : " + msg);
+                },
+                // 인증 정보 조회 실패
+                function(error) {
+                	$("#result").html("ERROR : " + error);
+                },
+                // 조회하고자 하는 인증 정보 구분자 목록
+                [
+                    'gov:nickname',
+                    'gov:cn',
+                    'gov:ou',
+                    'gov:oucode',
+                    'gov:department',
+                    'gov:departmentnumber'
+                ]
+            );
+        }
+    </script>
+
+</head>
+<style>
+    .button {
+        --background-color: #4CAF50;
+        --border: none;
+        --color: white;
+        padding: 12px 32px;
+        --text-align: center;
+        --text-decoration: none;
+        --display: inline-block;
+        --font-size: 16px;
+        --margin: 4px 2px;
+        cursor: pointer;
+        font-family: "Lucica Console", Monaco, monospace;
+    }
+</style>
+<body style="background-color:white;">
+
+<h1>가상화 테스트앱(Hybrid)</h1>
+<h2>User Info API</h2>
+<br>
+
+<center>
+    <p><button class="button" onclick="runInfo()">getInfo</button></p>
+</center>
+
+<h5 id="result"></h5>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+{ 
+	"vpn_delay_devices": 
+	[
+		{
+			"device":"SM-N920",
+			"delay":"2"
+		}, 
+		{
+			"device":"SM-A8",
+			"delay":"2"
+		}
+	],
+	"android_framework_confirm_devices" : [
+
+	]
+}

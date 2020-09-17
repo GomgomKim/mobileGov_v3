@@ -1,0 +1,2 @@
+configurations.maybeCreate("default")
+artifacts.add("default", file('iff_mam_library-1.2.1.aar'))

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/d_bg_tab"
+    android:orientation="horizontal" >
+
+    <LinearLayout
+        android:id="@+id/bottomlayout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+        <RelativeLayout
+            android:id="@+id/certimport_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="invisible" >
+
+            <ImageButton
+                android:id="@+id/certimport"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="2dip"
+                android:layout_marginRight="2dip"
+                android:background="@drawable/d_import" >
+            </ImageButton>
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/certdelete_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="invisible" >
+
+            <ImageButton
+                android:id="@+id/certdelete"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="2dip"
+                android:layout_marginRight="2dip"
+                android:background="@drawable/d_delete" >
+            </ImageButton>
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/pwchange_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="invisible" >
+
+            <ImageButton
+                android:id="@+id/pwchange"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="2dip"
+                android:layout_marginRight="2dip"
+                android:background="@drawable/d_pinchange" >
+            </ImageButton>
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/pininit_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="invisible" >
+
+            <ImageButton
+                android:id="@+id/pininit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="2dip"
+                android:layout_marginRight="2dip"
+                android:background="@drawable/d_pininit" >
+            </ImageButton>
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/useinfo_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="invisible" >
+
+            <ImageButton
+                android:id="@+id/useinfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="2dip"
+                android:layout_marginRight="2dip"
+                android:background="@drawable/d_info" >
+            </ImageButton>
+        </RelativeLayout>
+    </LinearLayout>
+
+</RelativeLayout>

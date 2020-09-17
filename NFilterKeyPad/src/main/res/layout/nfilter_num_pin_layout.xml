@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nf_num_pin_layout"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#FFFFFF"
+    android:tag="1.0.1"
+    android:visibility="gone" >
+
+    <include
+        android:id="@+id/nf_pin_full_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_alignParentBottom="true"
+        layout="@layout/nfilter_num_pin_key_view" />
+
+    <!-- mobile version logo -->
+
+    <LinearLayout
+        android:id="@+id/nf_num_pin_top_parent_layout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="25dp"
+        android:orientation="vertical" >
+
+        <LinearLayout
+            android:id="@+id/nf_num_pin_top_layout"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical" >
+
+            <!-- desc -->
+
+            <TextView
+                android:id="@+id/nf_num_pin_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_horizontal"
+                android:text="암호"
+                android:textColor="@android:color/black"
+                android:textSize="30sp" />
+
+            <TextView
+                android:id="@+id/nf_num_pin_desc_second"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:text="암호를 입력하세요."
+                android:textColor="@android:color/background_dark"
+                android:visibility="visible" />
+        </LinearLayout>
+        <!-- top inputbox layout -->
+
+        <LinearLayout
+            android:id="@+id/nf_num_pin_inputbox_layout"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical" >
+
+            <include
+                android:id="@+id/nf_pin_input_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                layout="@layout/nfilter_num_pin_input_view" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

@@ -1,0 +1,27 @@
+{ 
+	"required_packages": 
+	[
+		{
+			"package":"com.zenprise",
+			"label":"SecureHub"
+		},
+		{
+			"package":"net.secuwiz.SecuwaySSL.moi",
+			"label":"SecuwaySSL"
+		},
+		{
+			"package":"com.infratech.ve.agent",
+			"label":"V-Guard Enterprise"
+		},
+		{
+			"package":"com.dki.pushagent",
+			"label":"PushAgent(구)",
+			"max.api":19
+		},
+		{
+			"package":"com.dkitec.android.pushagent",
+			"label":"PushAgent",
+			"min.api":20
+		}
+	] 
+}

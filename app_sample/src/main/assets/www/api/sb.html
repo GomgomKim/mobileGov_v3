@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 서비스브로커 테스트앱(Hybrid)</title>
+
+    <script src="../js/MDHAdapter.4.0.0.min.js"></script>
+    <script  src="../js/jquery-latest.min.js"></script>
+    
+    <script type="text/javascript">
+        function runSb(idx) {
+            var sCode;
+            var parameter;
+
+            switch(idx) {
+                case 1:
+                    sCode = 'IF_MSERVICE';
+                    parameter = '';
+                    break;
+
+                default:
+                    sCode = '';
+                    parameter = '';
+            }
+
+            // 중계 시스템 연계 요청
+            MDHBasic.SEMP.request(
+                // 중계 시스템 연계 요청 성공
+                function(result) {
+                var msg = '';
+	                 
+	                 for (var key in result) {
+	                 	msg += key + " = " + result[key] + "<br>"; 
+	                 }
+                 
+                	console.log('service broker resul = ' + msg);
+                	$("#result").html("OK : " + msg);
+                },
+                // 중계 시스템 연계 요청 실패
+                function(error) {
+                    console.log('service broker error = ' + error);
+                    console.log(error);
+                    $("#result").html("ERROR : " + error);
+                },
+                // 중계 시스템 연계 요청 정보
+                {
+                    // 공통기반 서비스 아이디
+                    'sCode' : sCode,
+                    // 기관 서버로 요청할 파라미터
+                    'parameter' : parameter
+                }
+            );
+        }
+    </script>
+
+</head>
+<style>
+    .button {
+        --background-color: #4CAF50;
+        --border: none;
+        --color: white;
+        padding: 12px 32px;
+        --text-align: center;
+        --text-decoration: none;
+        --display: inline-block;
+        --font-size: 16px;
+        --margin: 4px 2px;
+        cursor: pointer;
+        font-family: "Lucica Console", Monaco, monospace;
+    }
+</style>
+<body style="background-color:white;">
+
+<h1>가상화 테스트앱(Hybrid)</h1>
+<h2>Service Broker API</h2>
+<br>
+
+<center>
+    <p><button class="button" onclick="runSb(1)">IF_MSERVICE</button></p>
+</center>
+
+<h5 id="result"></h5>
+
+</body>
+</html>

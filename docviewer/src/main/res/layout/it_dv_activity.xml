@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/it_layout_doc_viewer"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:background="@color/it_dv_color_pagedefault_bg" >
+
+    <FrameLayout
+			android:id="@+id/fragmentHost"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        
+		<ProgressBar
+            android:id="@+id/it_pb_doc_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:visibility="invisible"/>
+
+		<TextView
+		    android:id="@+id/it_req_move_page"
+		    android:layout_width="fill_parent"
+		    android:layout_height="fill_parent"
+		    android:gravity="center"
+		    android:textStyle="bold"
+		    android:typeface="monospace"
+		    android:visibility="invisible" />
+
+		<com.infrawaretech.docviewer.ui.DocPager
+			android:id="@+id/it_extpager_doc_page"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"/> 
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/it_layout_paging"
+        android:layout_width="fill_parent"
+        android:layout_height="55dp"
+        android:layout_gravity="bottom"
+        android:background="@color/it_dv_color_bottombar_bg"
+        android:orientation="vertical"
+        android:paddingBottom="5dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp" >
+
+        <SeekBar
+            android:id="@+id/it_seekbar_paging"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:maxHeight="5dp" />
+
+        <TextView
+            android:id="@+id/it_txt_page"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:text="@string/it_dv_msg_converting"
+            android:textColor="#ffffff"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+</LinearLayout>
+

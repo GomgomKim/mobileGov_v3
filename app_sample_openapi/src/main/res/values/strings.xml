@@ -1,0 +1,11 @@
+<resources>
+    <string name="company">모바일 전자정부 지원센터(내부)</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="api_user_info">사용자 정보 API</string>
+    <string name="api_service_broker">서비스 브로커 API</string>
+    <string name="api_doc_viewer">문서뷰어 API</string>
+    <string name="api_doc_viewer_custom">커스텀 문서뷰어</string>
+    <string name="api_tss"> 음성인식</string>
+    <string name="title_activity_file_service">FileServiceActivity</string>
+    <string name="title_activity_custom_doc">CustomDocActivity</string>
+</resources>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 테스트앱(Hybrid)</title>
+    <script src="./js/MDHAdapter.4.0.0.min.js"></script>
+    <script src="./js/jquery-latest.min.js"></script>
+    <script type="text/javascript">
+        function onload() {
+            console.log('get cn = ' + cn);
+            console.log('get ou = ' + ou);
+            console.log('get dvhost = ' + dvhost);
+
+			$("#info").html("이름: " + cn + "<br>소속기관: " + ou);
+			
+            cn = encodeURIComponent(cn);
+            ou = encodeURIComponent(ou);
+            dvhost = encodeURIComponent(dvhost);
+
+            document.getElementById("dvlink").href = "./api/dv.html?cn=" + cn + "&dvhost=" + dvhost;
+        }
+
+        function callDvApiPage() {
+            var a = document.dvparams;
+            a.dvhost.value = dvhost;
+            a.submit();
+        }
+    </script>
+</head>
+<style>
+</style>
+
+<body style="background-color:white;" onload="onload()">
+<h1>가상화 테스트앱(Hybrid)</h1>
+<h1 id="info"></h1>
+<br>
+<br>
+<h3><a href="./api/info.html">User Info API</a></h3>
+<h3><a href="./api/sb.html">Service Broker API</a></h3>
+<h3><a href="#" id="dvlink">Document Viewer API</a></h3>
+<h3><a href="./api/userplugin.html">uesr plugin</a></h3>
+</body>
+</html>

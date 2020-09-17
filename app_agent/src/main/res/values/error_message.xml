@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="err_request_is_no_longer_used">%%s 요청을 더 이상 사용하지 않습니다.</string>
+	<string name="err_request_can_not_be_processed">%%s 요청을 처리할 수 없습니다. (사유 = %%s)</string>
+</resources>

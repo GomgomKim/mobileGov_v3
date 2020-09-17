@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content" android:layout_height="wrap_content"
+    >
+
+	  <LinearLayout android:orientation="vertical" android:gravity="center"
+	       android:layout_width="fill_parent" android:layout_height="wrap_content">
+		   <ToggleButton
+				android:id="@+id/nf_alert_toggle"
+		       android:layout_width="fill_parent"
+		       android:layout_height="wrap_content"
+		       android:layout_margin="20dp"
+		       android:text="WiFi 허용 여부"
+		       android:textOn="WiFi 허용 끄기"
+		       android:textOff="WiFi 허용 켜기" />
+
+		  <TextView android:id="@+id/nf_alert_message"
+		      android:gravity="center" android:layout_marginTop="10dp" android:layout_marginBottom="10dp"
+		      android:text="개인,금융 정보의 안전한 입력을 위해 무선 인터넷(WiFi) 환경에서의 입력을 혀용하지 않습니다."
+		      android:layout_width="fill_parent" android:layout_height="wrap_content"/>
+	  </LinearLayout>
+</LinearLayout>

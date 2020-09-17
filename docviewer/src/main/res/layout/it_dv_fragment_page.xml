@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/it_dv_content"
+    android:layout_gravity="bottom"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/it_dv_color_pagedefault_bg">
+    
+ 		<com.infrawaretech.docviewer.ui.adapter.DocPage
+		    android:id="@+id/docView"
+		    android:layout_gravity="center"
+		    android:layout_width="match_parent"
+		    android:layout_height="wrap_content"/>
+
+</FrameLayout>

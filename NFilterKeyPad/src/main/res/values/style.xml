@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="nf_char_btn">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginRight">2dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@drawable/nf_btn_key_bg_selector</item>
+        <item name="android:padding">0dp</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:src">@drawable/nf_lq</item>        
+    </style>
+    
+    <style name="nf_char_fun_btn">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginRight">1dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@drawable/nf_btn_key_fun_bg_selector</item>
+        <item name="android:padding">0dp</item>
+        <item name="android:scaleType">centerInside</item>
+    </style>
+</resources>

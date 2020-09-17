@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="guide">통합백신교체가이드</string>
+	<string name="app_description">IFF_MAM</string>
+	<integer name="AfterRespVpnRemainTimeSec">60</integer>
+	<integer name="REPEAT_CHECK_SECOND_SECURE_NETWORK">30</integer>
+	<integer name="SignedSessionTimeoutSec">3600</integer> <!-- 인증 상태 세션 정보를 유지하는 시간 (기본: 3600 sec = 60 m = 1h)-->
+	<integer name="SecuwaySSLVersion">1</integer> <!-- vpn 서버 장비가 SecuwaySSL v3.0 장비이상 1, 그렇지 않으면 0 -->
+	<integer name="VpnConnectRetryCnt">10</integer> <!-- vpn 연결 재시도 카운트 . 망의 속도에 따라 조절 해 주도록 하자.. -->
+	<integer name="VpnConnectRetryDelay">8000</integer> <!-- vpn 연결 재시도 딜레이 . 망의 속도에 따라 조절 해 주도록 하자.. -->
+	<integer name="OVERTIME_SECOND_SECURE_NETWORK">1800</integer> <!-- vpn idle time (default: 1800): 30min -->
+	<string name="MagicMRSIP">125.60.21.148</string> <!-- 인증서 이동을 위한 기본 설정 정보 -->
+	<string name="MagicMRSIPIntra">125.60.21.135</string> <!-- 인트라넷(내부망) 서버 정보 -->
+	<string name="MagicMRSAppId">GPKIAPP</string>
+	<integer name="MagicMRSPort">10001</integer>
+	<integer name="MagiclineSignWrongPasswordCount">5</integer>
+	<integer name="HttpConnectionTimeOut">180000</integer>
+	<integer name="HttpReadTimeOut">180000</integer>
+</resources>

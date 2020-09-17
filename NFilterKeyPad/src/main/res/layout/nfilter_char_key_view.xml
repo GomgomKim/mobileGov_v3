@@ -1,0 +1,623 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#55000000"
+    android:tag="bigfont"
+    android:visibility="gone" >
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:clickable="true"
+        android:orientation="vertical" >
+
+        <RelativeLayout
+            android:id="@+id/nf_fun_top"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/nf_toolbar_bg" >
+
+            <ImageButton
+                android:id="@+id/nf_fun_key_pre"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="25dp"
+                android:background="@android:color/transparent"
+                android:scaleType="centerInside"
+                android:src="@drawable/nf_btn_toolbar_prev_selector"
+                android:visibility="visible" />
+
+            <ImageButton
+                android:id="@+id/nf_fun_key_next"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="30dp"
+                android:layout_toRightOf="@id/nf_fun_key_pre"
+                android:background="@android:color/transparent"
+                android:scaleType="centerInside"
+                android:src="@drawable/nf_btn_toolbar_next_selector"
+                android:visibility="visible" />
+
+            <ImageButton
+                android:id="@+id/nf_fun_key_done"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="5dp"
+                android:background="@android:color/transparent"
+                android:scaleType="centerInside"
+                android:src="@drawable/nf_btn_toolbar_done_selector" />
+
+
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/nf_char_keypad_parent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#CDCFD3"
+            android:orientation="vertical"
+            android:padding="0dp" >
+
+            <LinearLayout
+                android:id="@+id/nf_key_row_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:layout_marginLeft="2.5dp"
+                android:layout_marginRight="2.5dp"
+                android:layout_marginTop="5dp"
+                android:padding="0dp" >
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_1"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_2"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_3"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_4"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_5"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_6"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_7"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_8"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_9"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="1.5dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_10"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_top_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/nf_key_row_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:layout_marginLeft="2.5dp"
+                android:layout_marginRight="2.5dp"
+                android:padding="0dp" >
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_11"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_12"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_13"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_14"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_15"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_16"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_17"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_18"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_19"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_20"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/nf_key_row_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:layout_marginLeft="2.5dp"
+                android:layout_marginRight="2.5dp"
+                android:padding="0dp" >
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_21"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_22"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_23"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_24"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_25"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_26"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_27"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_28"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_29"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/nf_key_row_4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:layout_marginLeft="2.5dp"
+                android:layout_marginRight="2.5dp"
+                android:padding="0dp" >
+
+                <ImageButton
+                    android:id="@+id/nf_fun_key_shift"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/nf_btn_key_fun_bg_selector"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_btn_key_fun_shift_icon" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_30"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_31"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_32"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_33"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_34"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_35"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <com.nshc.nfilter.NFilterButton
+                    android:id="@+id/nf_key_36"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/nf_btn_key_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_lq" />
+
+                <ImageButton
+                    android:id="@+id/nf_fun_key_delete"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/nf_btn_key_fun_bg_selector"
+                    android:cropToPadding="true"
+                    android:padding="0dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nf_btn_key_fun_back_icon" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/nf_key_fun"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="2dp"
+                android:layout_marginLeft="2.5dp"
+                android:layout_marginRight="2.5dp"
+                android:padding="0dp" >
+
+                <ImageButton
+                    android:id="@+id/nf_fun_key_replace"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.5"
+                    android:layout_marginRight="2dp"
+                    android:background="@drawable/nf_btn_key_replace_bg_selector"
+                    android:padding="0dp"
+                    android:src="@drawable/nf_btn_key_fun_replace_icon" />
+
+                <ImageButton
+                    android:id="@+id/nf_fun_key_special"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="2dp"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/nf_btn_key_change_bg_selector"
+                    android:padding="0dp"
+                    android:src="@drawable/nf_btn_key_fun_change_icon" />
+
+                <ImageButton
+                    android:id="@+id/nf_fun_key_change"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="2dp"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/nf_btn_key_change_bg_selector"
+                    android:padding="0dp"
+                    android:src="@drawable/nf_btn_key_fun_change_icon" />
+
+                <ImageButton
+                    android:id="@+id/nf_fun_key_space"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginRight="2dp"
+                    android:layout_weight="3"
+                    android:background="@drawable/nf_btn_key_space_bg_selector"
+                    android:padding="0dp"
+                    android:src="@drawable/nf_btn_key_fun_space_icon" />
+
+                <ImageButton
+                    android:id="@+id/nf_fun_bottom_key_done"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="2"
+                    android:background="@drawable/nf_btn_key_done_bg_selector"
+                    android:padding="0dp"
+                    android:src="@drawable/nf_btn_key_done_icon" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

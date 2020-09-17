@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_btn1"
+        android:icon="@android:drawable/sym_action_call"
+        android:title="전화 걸기"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_btn2"
+        android:icon="@android:drawable/star_big_on"
+        android:title="결제하기"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_btn3"
+        android:icon="@android:drawable/sym_action_email"
+        android:title="메일 보내기"
+        app:showAsAction="always" />
+</menu>

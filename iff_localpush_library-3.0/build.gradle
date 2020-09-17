@@ -1,0 +1,2 @@
+configurations.maybeCreate("default")
+artifacts.add("default", file('iff_localpush_library-3.0.aar'))

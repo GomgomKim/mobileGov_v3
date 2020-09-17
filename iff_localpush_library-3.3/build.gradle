@@ -1,0 +1,2 @@
+configurations.maybeCreate("default")
+artifacts.add("default", file('locallibrary_master-3.3-release-20190927-182320.aar'))

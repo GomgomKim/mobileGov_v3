@@ -1,0 +1,142 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="kr.go.mobile.mobp.iff">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <permission android:name="kr.go.mobile.permission.ACCESS_SERVICE_BROKER" />
+
+
+    <application
+        android:name="kr.go.mobile.iff.SAGTApplication"
+        android:allowBackup="false"
+        android:icon="@drawable/icon_launcher_internal"
+        android:label="@string/app_name_internal"
+        android:largeHeap="true"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        tools:replace="android:allowBackup">
+
+        <activity
+            android:name="kr.go.mobile.iff.MobileGovLoadingActivity"
+            android:clearTaskOnLaunch="true"
+            android:configChanges="orientation|keyboardHidden|locale"
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:label="@string/app_name_internal"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="kr.go.mobile.LAUNCH_GMOBILE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="kr.go.mobile.iff.GuideActivity"
+            android:clearTaskOnLaunch="true"
+            android:label="@string/guide"></activity>
+
+        <!-- 내부에서 세션관리를 위한 서비스 -->
+        <service
+            android:name="kr.go.mobile.iff.service.SessionManagerService"
+            android:exported="false" />
+
+        <!-- 서비스 브로커 -->
+        <service
+            android:name="kr.go.mobile.iff.service.HttpService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="kr.go.mobile.permission.ACCESS_SERVICE_BROKER">
+            <intent-filter>
+                <action android:name="kr.go.mobile.mobp.mff.HTTPDATA"></action>
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="kr.go.mobile.iff.service.AliveService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="kr.go.mobile.permission.ACCESS_SERVICE_BROKER">
+            <intent-filter>
+                <action android:name="kr.go.mobile.service.ACTION_ALIVE_SERVICE" />
+            </intent-filter>
+
+        </service>
+
+        <!-- 행정앱의 상태를 받는 브로드케스트 리시버 -->
+        <receiver
+            android:name="kr.go.mobile.iff.MobileGovReceiver"
+            android:permission="kr.go.mobile.permission.ACCESS_SERVICE_BROKER">
+            <intent-filter>
+                <action android:name="kr.go.mobile.ACTION_ADMINAPP_STATUS" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name="kr.go.mobile.iff.CommonReceiver">
+            <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+
+                <data android:scheme="package" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 인증서관련 activity 로 고정 값 -->
+        <activity
+            android:name="com.dreamsecurity.magicline.client.CertMgrActivity"
+            android:configChanges="orientation|keyboard"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"></activity>
+        <activity
+            android:name="com.dreamsecurity.magicline.client.CertMoveActivity"
+            android:configChanges="orientation|keyboard"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"></activity>
+        <activity
+            android:name="com.dreamsecurity.magicline.client.InfomationActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"></activity>
+        <activity
+            android:name="com.dreamsecurity.magicline.client.ConfirmVKActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateVisible"></activity>
+        <activity
+            android:name="com.dreamsecurity.magicline.client.ConfirmActivity"
+            android:configChanges="orientation|keyboard"
+            android:label="@string/app_name"></activity>
+        <activity
+            android:name="com.dreamsecurity.magicline.client.CertCountActivity"
+            android:configChanges="orientation|keyboard"
+            android:label="@string/app_name"></activity>
+        <activity
+            android:name="com.dreamsecurity.magicline.client.CertSignActivity"
+            android:configChanges="orientation|keyboard"
+            android:label="@string/app_name"></activity>
+        <activity
+            android:name="com.nshc.nfilter.NFilterChar"
+            android:configChanges="orientation|keyboard"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.Translucent" />
+        <activity
+            android:name="com.nshc.nfilter.NFilterNum"
+            android:configChanges="keyboardHidden"
+            android:screenOrientation="sensor"
+            android:windowSoftInputMode="stateAlwaysHidden" />
+        <activity
+            android:name="com.nshc.nfilter.NFilterSerialNum"
+            android:configChanges="keyboardHidden"
+            android:screenOrientation="sensor"
+            android:windowSoftInputMode="stateAlwaysHidden" />
+    </application>
+</manifest>

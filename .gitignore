@@ -1,0 +1,19 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+
+# Project exclude paths
+/iff_localpush_library-3.0/build/
+/iff_mam_library-1.2.1/build/
+/iff_mam_library-testbed-1.2.1/build/
+/iff_msm_library-0.10.7/build/

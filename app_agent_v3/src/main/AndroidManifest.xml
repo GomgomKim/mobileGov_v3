@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="kr.go.mobile.mobp.iff">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"
+        tools:ignore="ProtectedPermissions" />
+
+
+
+    <!-- 보안 Agent 3.x 퍼미션 -->
+    <permission
+        android:name="kr.go.mobile.permission.ACCESS_RELAY_SERVICE"
+        android:description="@string/permission_description"
+        android:label="@string/permission_label"/>
+
+
+    <application
+        android:name="kr.go.mobile.agent.app.SAGTApplication"
+        android:allowBackup="false"
+        android:icon="@drawable/icon_launcher_internal"
+        android:label="@string/app_name_internal"
+        android:largeHeap="true"
+        android:requestLegacyExternalStorage="true"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        tools:targetApi="q">
+        <activity
+            android:name="kr.go.mobile.agent.v3.CommonBaseInitActivity"
+            android:label=""
+            android:clearTaskOnLaunch="true"
+            android:configChanges="orientation|keyboardHidden|locale"
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="kr.go.mobile.action.LAUNCH_SECURITY_AGENT"/>
+                <action android:name="kr.go.mobile.LAUNCH_GMOBILE" /> <!-- 보안 Agent 2.x 인텐트 액션 -->
+                <category android:name="kr.go.mobile.agent.LAUNCHER"/>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- 보안 Agent 2.x 서비스 -->
+        <service
+            android:name="kr.go.mobile.agent.service.old.OldServiceV2"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="kr.go.mobile.permission.ACCESS_SERVICE_BROKER">
+            <intent-filter>
+                <action android:name="kr.go.mobile.mobp.mff.HTTPDATA" />
+            </intent-filter>
+        </service>
+
+        <!-- 보안 Agent 2.x 서비스 -->
+        <service
+            android:name="kr.go.mobile.agent.service.broker.BrokerService"
+            android:exported="false" />
+        <service
+            android:name="kr.go.mobile.agent.service.session.SessionService"
+            android:exported="false" />
+        <service
+            android:name="kr.go.mobile.agent.service.monitor.MonitorService"
+            android:exported="false">
+        </service>
+
+    </application>
+
+</manifest>

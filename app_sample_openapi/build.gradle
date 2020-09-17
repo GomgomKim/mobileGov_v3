@@ -1,0 +1,67 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "kr.go.mobile.iff.sample"
+        minSdkVersion 21
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        targetSdkVersion 21
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    lintOptions {
+        checkReleaseBuilds false
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
+    }
+
+    flavorDimensions "pkgInfo"
+    productFlavors {
+        tbed {
+            dimension "pkgInfo"
+            resValue "string", "app_name", "모바일전자정부(테스트베드)"
+            resValue "string", "msmurl", "https://msmsub.mobile.go.kr/eversafe"
+            resValue "string", "pushurl", "http://125.60.62.72:9001/pis/interface/"
+            resValue "string", "pushid", "mc_iff"
+        }
+        oper {
+            dimension "pkgInfo"
+            resValue "string", "app_name", "모바일전자정부(운영)"
+            resValue "string", "msmurl", "https://msmmain.mobile.go.kr/eversafe"
+            resValue "string", "pushurl", "http://ilpush.mcenter.go.kr:9001/pis/interface/"
+            resValue "string", "pushid", "localapp"
+        }
+    }
+    buildToolsVersion '29.0.2'
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support.constraint:constraint-layout:2.0.0-beta2'
+    implementation 'com.android.support:design:28.0.0'
+    implementation project(path: ':docviewer_openapi')
+    // 공통기반 라이브러리
+
+    tbedImplementation project(':iff_mam_library-testbed-1.2.1')
+    operImplementation project(':iff_mam_library-1.2.1')
+    // 보안검증 라이브러리
+    implementation project(':iff_msm_library-0.10.7')
+    // 문서뷰어 라이브러리
+//    implementation project(path: ':docviewer_openapi')
+    //tbedImplementation project(':iff_docviewer_library-testbed-1.2.1')
+    //operImplementation project(':iff_docviewer_library-1.2.1')
+    implementation 'com.android.support:support-v13:28.0.0'
+
+    implementation 'com.github.chrisbanes:PhotoView:2.1.4'
+
+
+}

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mainlayout"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/d_bg" >
+
+    <LinearLayout
+        android:id="@+id/topmenulayout"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical" >
+
+        <include layout="@layout/d_title" />
+
+        <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" >
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/title"
+                android:orientation="vertical" >
+
+                <RelativeLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="30dp"
+                    android:layout_marginTop="30dp" >
+
+                    <ImageView
+                        android:id="@+id/certmove_info_top"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:background="@drawable/d_import_info01"
+                        android:scaleType="matrix"
+                        android:textSize="20sp" >
+                    </ImageView>
+                </RelativeLayout>
+
+                <LinearLayout
+                    android:id="@+id/certmove_authcode"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="50dp"
+                    android:layout_marginRight="50dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@drawable/d_box02"
+                    android:orientation="vertical" >
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:layout_marginTop="10dp" >
+
+                        <TextView
+                            android:id="@+id/authcodetitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:gravity="center"
+                            android:text="인증번호"
+                            android:textSize="30sp" >
+                        </TextView>
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="20dp"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
+                        android:layout_marginTop="20dp" >
+
+                        <TextView
+                            android:id="@+id/authcode0"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentLeft="true"
+                            android:layout_marginRight="3dp"
+                            android:background="@drawable/d_input_field_w"
+                            android:gravity="center"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="35sp"
+                            android:textStyle="bold" >
+                        </TextView>
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:layout_toLeftOf="@+id/authcode1"
+                            android:layout_toRightOf="@+id/authcode0"
+                            android:background="@drawable/d_fieldgap"
+                            android:gravity="center" >
+                        </ImageView>
+
+                        <TextView
+                            android:id="@+id/authcode1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:layout_marginLeft="3dp"
+                            android:layout_marginRight="3dp"
+                            android:background="@drawable/d_input_field_w"
+                            android:gravity="center"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="35sp"
+                            android:textStyle="bold" >
+                        </TextView>
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:layout_toLeftOf="@+id/authcode2"
+                            android:layout_toRightOf="@+id/authcode1"
+                            android:background="@drawable/d_fieldgap"
+                            android:gravity="center" >
+                        </ImageView>
+
+                        <TextView
+                            android:id="@+id/authcode2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:layout_marginLeft="3dp"
+                            android:background="@drawable/d_input_field_w"
+                            android:gravity="center"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="35sp"
+                            android:textStyle="bold" >
+                        </TextView>
+                    </RelativeLayout>
+
+                    <ProgressBar
+                        android:id="@+id/mypb"
+                        style="@style/customProgressBar"
+                        android:layout_width="fill_parent"
+                        android:layout_height="15dp"
+                        android:layout_marginBottom="20dp"
+                        android:layout_marginLeft="12dp"
+                        android:layout_marginRight="12dp"
+                        android:layout_marginTop="20dp"
+                        android:max="300"
+                        android:progress="300" >
+                    </ProgressBar>
+
+                    <RelativeLayout
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="20dp"
+                        android:layout_marginLeft="12dp"
+                        android:layout_marginRight="12dp"
+                        android:layout_marginTop="20dp" >
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerHorizontal="true"
+                            android:orientation="horizontal" >
+
+                            <TextView
+                                android:id="@+id/time_tv_label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginLeft="2dp"
+                                android:text="남은시간 : "
+                                android:textSize="30sp" >
+                            </TextView>
+
+                            <TextView
+                                android:id="@+id/time_tv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginLeft="10dp"
+                                android:gravity="right"
+                                android:text="0초"
+                                android:textSize="30sp" >
+                            </TextView>
+                        </LinearLayout>
+                    </RelativeLayout>
+                </LinearLayout>
+
+                <RelativeLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="30dp" >
+
+                    <ImageView
+                        android:id="@+id/certmove_info_bottom1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:background="@drawable/d_import01" >
+                    </ImageView>
+
+                    <ImageView
+                        android:id="@+id/certmove_info_bottom2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_below="@+id/certmove_info_bottom1"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginTop="20dp"
+                        android:background="@drawable/d_import_info02" >
+                    </ImageView>
+                </RelativeLayout>
+            </LinearLayout>
+        </RelativeLayout>
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progcircle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="invisible" />
+
+</RelativeLayout>

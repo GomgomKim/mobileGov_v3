@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="kr.go.mobile.iff.service" >
+    <!-- 보안 Agent 2.x 퍼미션 -->
+    <permission
+        android:name="kr.go.mobile.permission.ACCESS_SERVICE_BROKER"
+        android:description="@string/permission_description"
+        android:label="@string/deprecated_permission_label" />
+</manifest>

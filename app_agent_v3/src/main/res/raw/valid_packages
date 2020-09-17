@@ -1,0 +1,36 @@
+{ 
+	"required_packages": 
+	[
+		{
+			"package":"com.zenprise",
+			"label":"SecureHub"
+		},
+		{
+			"package":"net.secuwiz.SecuwaySSL.moi",
+			"label":"SecuwaySSL"
+		},
+		{
+			"package":"com.infratech.ve.agent",
+			"label":"V-Guard Enterprise"
+		},
+		{
+			"package":"com.dki.pushagent",
+			"label":"PushAgent(구)",
+			"min.api":0,
+			"max.api":19
+		},
+		{
+			"package":"com.dkitec.android.pushagent",
+			"label":"PushAgent",
+			"min.api":20,
+			"max.api":28
+		}
+	],
+	"license_expired_package" :
+	[
+	    {
+            "package":"com.ahnlab.v3mobileenterprise",
+            "label":"V3 엔터프라이즈"
+	    }
+	]
+}

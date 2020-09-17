@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+* 2012.09.06 ver. 1.0
+1) 버전 추가
+2) nf_logo.png -> nf_logo.9.png로 교체 @+id/nf_char_logo : padding 0dp 추가
+
+*2012.09.27 ver. 1.1
+1)  nf_char_desc_second  android:layout_width wrap_content -> fill_parent 로 변경 
+ -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent" android:layout_height="fill_parent"
+    android:id="@+id/nf_char_layout" 
+    android:layout_alignParentBottom="true"
+    android:tag="1.0"
+    android:visibility="invisible"
+    >
+     <!-- tool tip 잔상이 남는 현상 때문에 추가 -->
+    <ImageView android:id="@+id/nf_char_bg"
+        android:src="@drawable/nf_bg" android:scaleType="fitXY"
+        android:layout_width="fill_parent" android:layout_height="fill_parent" />
+    <!-- ====================================================================== -->
+    
+    <!-- mobile version logo -->
+	<LinearLayout android:id="@+id/nf_char_top_parent_layout"     
+        android:orientation="vertical"
+        android:layout_width="fill_parent" android:layout_height="wrap_content" >
+        
+		<LinearLayout android:id="@+id/nf_char_top_layout"
+		    android:orientation="vertical" android:gravity="center_horizontal"  
+			android:layout_width="fill_parent" android:layout_height="wrap_content" >   
+			
+		    <!--  custom logo layout -->
+		    <include  android:id="@+id/nf_char_custom_logo" layout="@layout/nfilter_custom_logo"
+       				 android:layout_width="fill_parent"	android:layout_height="wrap_content"
+        	/>
+		    
+			<LinearLayout android:id="@+id/nf_char_logo" android:orientation="horizontal"
+				android:layout_width="fill_parent" android:layout_height="50dp" 
+				android:background="@drawable/nf_logo" android:gravity="right|center_vertical"
+				android:padding="0dp">
+				<ImageView android:id="@+id/nf_char_logo_image" android:layout_gravity="center" 
+				    android:src="@drawable/nf_logo"
+				    android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content"/>
+			    <TextView android:id="@+id/nf_char_logo_title"
+			        android:visibility="gone" android:textSize="25sp" android:textColor="@android:color/black"
+			        android:layout_width="wrap_content" android:layout_height="wrap_content"
+			        />
+			    
+			    <ImageView android:id="@+id/nf_char_network_setting"
+			        android:visibility="gone"
+			        android:layout_width="wrap_content" android:layout_height="wrap_content"
+			        android:src="@drawable/nf_network_setting" android:layout_marginRight="10dp"
+			        />
+			    
+			</LinearLayout>
+			
+			<LinearLayout android:id="@+id/nf_char_logo_bottom_line" android:orientation="horizontal"
+			     android:layout_width="fill_parent" android:layout_height="1dp" android:visibility="gone"
+			    />
+			<!-- desc -->
+		    <TextView android:id="@+id/nf_char_desc"
+		    	android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_horizontal"
+		    	android:text="설명을 입력하세요." android:layout_marginTop="15dp" android:textSize="30sp" android:textColor="@android:color/black"/>			
+		</LinearLayout>
+		<!-- top inputbox layout -->
+		<LinearLayout android:id="@+id/nf_char_inputbox_layout"
+		    android:orientation="vertical" android:gravity="center_horizontal"
+			android:layout_width="fill_parent" android:layout_height="wrap_content">
+			
+		    <EditText android:id="@+id/nf_char_editText" 
+		        android:layout_width="fill_parent" android:layout_height="wrap_content"
+		        android:layout_marginTop="15dp" android:layout_marginLeft="20dp" android:layout_marginRight="20dp"
+		        android:singleLine="true" android:clickable="false" android:focusable="true" android:cursorVisible="true"
+		        android:longClickable="false" android:layout_weight="1" android:background="@drawable/nf_bg_edit_text"
+		        android:paddingLeft="20dp" android:paddingRight="20dp" android:paddingTop="0dp" android:paddingBottom="0dp"
+		        android:textSize="30sp"
+		        android:textColor="@android:color/black"
+		       />
+		   
+		   	<TextView android:id="@+id/nf_char_desc_second"
+		        android:layout_width="fill_parent" android:layout_height="wrap_content"
+		        android:text="" android:textColor="@android:color/background_dark"
+		        android:gravity="center" android:visibility="gone"
+		        android:layout_marginTop="5dp"
+		        />
+		    		    
+		    <!-- ok button, cancel button -->
+		    <LinearLayout android:id="@+id/nf_char_okcancel_layout"
+		    	android:orientation="horizontal"
+		    	android:layout_width="fill_parent" android:layout_height="wrap_content"
+		    	android:layout_marginTop="15dp"  android:layout_weight="1" android:weightSum="2">
+		    	<!--setOkCancelChange() 사용을 위해서는 cancel 버튼과 ok 버튼의 위치 바꾸기 및 좌우 마진 변경-->
+		    	
+		    	<ImageButton android:id="@+id/nf_char_ok"
+		    		android:layout_width="0dp" android:layout_height="wrap_content"
+			    	android:layout_marginLeft="20dp"	android:layout_marginRight="5dp" 
+			    	android:src="@drawable/nf_ok"	android:background="@drawable/nf_ok_bg_selector" android:layout_weight="1"/>
+		    	
+		    	<ImageButton android:id="@+id/nf_char_cancel"
+		    		android:layout_width="0dp" android:layout_height="wrap_content"
+		    		android:layout_marginLeft="5dp"	android:layout_marginRight="20dp" 
+		    		android:src="@drawable/nf_cancel"	android:background="@drawable/nf_cancel_bg_selector"  android:layout_weight="1"/>
+		    	
+		    </LinearLayout>
+	    </LinearLayout>
+    </LinearLayout>
+    
+    <include android:id="@+id/nf_char_activity" layout="@layout/nfilter_char_key_view"
+        android:layout_width="wrap_content"	android:layout_height="wrap_content"
+        />
+</RelativeLayout>

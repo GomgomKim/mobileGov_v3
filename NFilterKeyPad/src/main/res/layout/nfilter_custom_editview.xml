@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:visibility="gone"
+    android:layout_width="match_parent"  android:layout_height="wrap_content"
+    android:orientation="vertical">
+    
+    <LinearLayout android:id="@+id/nf_editView_4"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:layout_marginTop="10dp" android:layout_marginLeft="30dp" android:layout_marginRight="30dp"
+        android:weightSum="4"
+        android:visibility="gone"
+        >
+        <EditText android:id="@+id/nf_editView_4_0"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_4_1"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_4_2"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_4_3"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+	</LinearLayout>
+	
+        <LinearLayout android:id="@+id/nf_editView_3"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:gravity="center" android:layout_marginTop="10dp" android:layout_marginLeft="30dp" android:layout_marginRight="30dp"
+        android:weightSum="3"
+        android:visibility="gone"
+        >
+        <EditText android:id="@+id/nf_editView_3_0"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_3_1"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_3_2"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+	</LinearLayout>
+    
+    <LinearLayout android:id="@+id/nf_editView_6"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:gravity="center" android:layout_marginTop="10dp"  android:layout_marginLeft="30dp" android:layout_marginRight="30dp"
+        android:weightSum="6"
+        android:visibility="gone"
+        >
+        <EditText android:id="@+id/nf_editView_6_0"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+        />
+        <EditText android:id="@+id/nf_editView_6_1"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_6_2"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_6_3"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_6_4"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <EditText android:id="@+id/nf_editView_6_5"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />                
+	</LinearLayout>    
+    
+    <LinearLayout android:id="@+id/nf_editView_dot_left_2"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:gravity="center" android:layout_marginTop="10dp"  android:layout_marginLeft="30dp" android:layout_marginRight="30dp"
+        android:visibility="gone"
+        >
+        <ImageView 
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:src="@drawable/nf_dot" android:layout_marginRight="10dp"/>
+        <EditText android:id="@+id/nf_editView_dot_left_2_0"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+        />
+        <EditText android:id="@+id/nf_editView_dot_left_2_1"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+	</LinearLayout>   
+    <LinearLayout android:id="@+id/nf_editView_dot_right_2"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:gravity="center" android:layout_marginTop="10dp"  android:layout_marginLeft="30dp" android:layout_marginRight="30dp"
+        android:visibility="gone"
+        >
+        <EditText android:id="@+id/nf_editView_dot_right_2_0"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+        />
+        <EditText android:id="@+id/nf_editView_dot_right_2_1"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:textColor="#000000"
+           />
+        <ImageView 
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:src="@drawable/nf_dot" android:layout_marginRight="10dp"/>        
+	</LinearLayout>	    
+
+    <LinearLayout android:id="@+id/nf_editView_serial_number_8"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:gravity="center" android:layout_marginTop="10dp"  android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+        android:visibility="gone"
+        >
+        <EditText android:id="@+id/nf_editView_serial_number_8_0"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+        />
+        <EditText android:id="@+id/nf_editView_serial_number_8_1"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+           />     
+        <EditText android:id="@+id/nf_editView_serial_number_8_2"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+           />     
+        <EditText android:id="@+id/nf_editView_serial_number_8_3"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+           />     
+        <EditText android:id="@+id/nf_editView_serial_number_8_4"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+           />                                      
+        <EditText android:id="@+id/nf_editView_serial_number_8_5"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+           />     
+        <EditText android:id="@+id/nf_editView_serial_number_8_6"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+           />     
+        <EditText android:id="@+id/nf_editView_serial_number_8_7"
+            android:layout_width="wrap_content"	android:layout_height="wrap_content"
+            android:background="@drawable/nf_bg_edit_text_transparent" android:layout_weight="1"
+            android:textSize="20sp" android:layout_marginRight="5dp" android:gravity="center"
+            android:editable="false" android:focusable="false" android:text="*" android:textColor="#000000"
+           />                                                  
+	</LinearLayout>	        
+    	 
+</LinearLayout>

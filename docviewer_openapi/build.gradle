@@ -1,0 +1,62 @@
+apply plugin: 'com.android.library'
+apply plugin: 'pmd'
+
+check.dependsOn 'pmd'
+
+android {
+    compileSdkVersion 28
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    flavorDimensions "pkgInfo"
+    productFlavors {
+        tbed {
+            dimension "pkgInfo"
+        }
+        oper {
+            dimension "pkgInfo"
+        }
+    }
+
+    configurations {
+        implementation.exclude group: 'org.jetbrains', module: 'annotations'
+    }
+
+}
+
+dependencies {
+    implementation project(path: ':app_agent_v3')
+    implementation project(path: ':lib_constants_v3')
+    tbedImplementation fileTree(include: ['*.jar'], dir: 'tblibs')
+    operImplementation fileTree(include: ['*.jar'], dir: 'libs')
+    compileOnly project(':commonlib')
+}
+
+task pmd(type: Pmd) {
+    ruleSetFiles = files("${project.rootDir}/config/quality/pmd/pmd-ruleset.xml")
+    ignoreFailures = true
+    ruleSets = ["basic", "braces", "strings"]
+
+    source 'src'
+    include '**/*.java'
+    exclude '**/gen/**'
+
+    reports {
+        xml.enabled = true
+        html.enabled = false
+    }
+}

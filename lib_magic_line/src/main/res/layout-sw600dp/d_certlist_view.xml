@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/cert_list_main"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content">
+		<RelativeLayout
+			android:id="@+id/list_cert"
+			android:layout_centerVertical="true"
+			android:layout_alignParentLeft="true"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_marginLeft="30dp">
+				<ImageView 
+					android:id="@+id/img_small_auth"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:background="@drawable/d_cert_thumb_gpki">
+				</ImageView>
+		</RelativeLayout>
+		<LinearLayout 
+			android:id="@+id/cert_list_body"
+			android:layout_centerVertical="true"
+			android:layout_toRightOf="@+id/list_cert"
+			android:layout_marginLeft="30dp"
+			android:orientation="vertical"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content">
+			<TextView
+				android:id="@+id/pkitype"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textSize="12sp"
+				android:text="행정전자서명인증서"/>
+			<TextView
+				android:id ="@+id/certsubject"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textSize="16sp"
+				android:textStyle="bold"
+				android:lines="1"/>
+			<LinearLayout 
+				android:orientation="horizontal"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content">
+				<LinearLayout 
+					android:orientation="vertical"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content">
+					<TextView
+						android:id ="@+id/title_certissuer"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp"
+						android:text="발급자"/>
+					<TextView
+						android:id ="@+id/title_certoid"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp"
+						android:text="종 류"/>
+					<TextView
+						android:id ="@+id/title_certexpireDate"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp"
+						android:text="만료일"/>
+				</LinearLayout>
+				<LinearLayout 
+					android:orientation="vertical"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginLeft="10dp"
+					android:layout_marginRight="10dp"
+					>
+					<TextView
+						android:id ="@+id/colon_certissuer"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp" 
+						android:text=":"/>
+					<TextView
+						android:id ="@+id/colon_certoid"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp" 
+						android:text=":"
+						/>
+					<TextView
+						android:id="@+id/colon_certexpireDate"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp" 
+						android:text=":"
+						/>
+				</LinearLayout>
+				<LinearLayout 
+					android:orientation="vertical"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content">
+					<TextView
+						android:id ="@+id/certissuer"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp"
+						android:lines="1"
+						/>
+					<TextView
+						android:id ="@+id/certoid"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp"
+						android:maxLength="10"
+						android:lines="1"
+					/>
+					<TextView
+						android:id ="@+id/certexpireDate"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:textSize="12sp"
+						android:maxLength="10"
+						android:lines="1"
+						/>
+				</LinearLayout>
+			</LinearLayout>
+		</LinearLayout>
+		
+			<ImageView 
+				android:layout_alignParentRight="true"
+				android:layout_alignBottom="@+id/img_small_auth"
+				android:id="@+id/memorytype"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:visibility="invisible"
+				android:background="@drawable/d_icon_hsm_s">
+			</ImageView>
+</RelativeLayout>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:visibility="gone" >
+
+    <LinearLayout
+        android:id="@+id/nf_input_view_4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_horizontal"
+        android:visibility="gone" >
+
+        <ImageView
+            android:id="@+id/nf_input_view_4_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_4_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_4_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_4_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pass_selector" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/nf_input_view_6"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="30dp"
+        android:layout_marginRight="30dp"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:visibility="gone" >
+
+        <ImageView
+            android:id="@+id/nf_input_view_6_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pin_pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_6_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pin_pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_6_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pin_pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_6_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pin_pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_6_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/pin_pass_selector" />
+
+        <ImageView
+            android:id="@+id/nf_input_view_6_5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pin_pass_selector" />
+    </LinearLayout>
+
+</LinearLayout>

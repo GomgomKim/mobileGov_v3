@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout 
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/relative"
+	android:layout_width="wrap_content" 
+	android:layout_height="fill_parent">
+	<LinearLayout 
+		android:id="@+id/certdetailviewlayout"
+		android:orientation="vertical" 
+		android:layout_width="wrap_content"
+		android:layout_height="fill_parent" 
+		android:layout_centerInParent="true"
+		android:background="@drawable/d_main_cert_back">
+		<RelativeLayout 
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginLeft="5dp"
+			android:layout_marginRight="5dp">
+			<LinearLayout 
+				android:id="@+id/certdetail_sub1"
+				android:orientation="horizontal" 
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content" 
+				android:layout_alignRight="@+id/linearEdit2"
+				android:layout_marginTop="14dp">
+				<include layout="@layout/d_certlist_view"/>
+			</LinearLayout>
+			<LinearLayout
+				android:id="@+id/linearEdit2"
+				android:orientation="vertical" 
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content" 
+				android:layout_marginTop="10dp"
+				android:layout_marginRight="10dp" 
+				android:layout_marginLeft="10dp"
+				android:layout_marginBottom="15dp" 
+				android:layout_weight="1"
+				android:background="@drawable/d_box01"
+				android:layout_below="@+id/certdetail_sub1">
+				<ScrollView 
+					android:id="@+id/detail_ScrollView01"
+					android:layout_width="fill_parent" 
+					android:layout_height="fill_parent"
+					android:scrollbarAlwaysDrawHorizontalTrack="true"
+					android:scrollbars="horizontal|vertical"
+					android:scrollbarAlwaysDrawVerticalTrack="true" >
+					<LinearLayout
+						android:id="@+id/cert_detailed"
+						android:orientation="vertical" 
+						android:scrollbars="vertical"
+						android:layout_width="fill_parent"
+						android:layout_height="fill_parent" >
+					</LinearLayout>
+				</ScrollView>
+			</LinearLayout>
+		</RelativeLayout>
+	</LinearLayout>
+</RelativeLayout>

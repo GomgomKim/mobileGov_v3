@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="kr.go.mobile.iff.sample">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:name=".SampleApplication"
+        android:allowBackup="true"
+        android:icon="@drawable/logo_moi"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/logo_moi"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        tools:replace="android:icon">
+        <activity android:name=".DocActivity"
+            android:theme="@style/Theme.AppCompat"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden"
+            ></activity>
+        <activity android:name=".DocActivity2"
+            android:theme="@style/Theme.AppCompat"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden"
+            ></activity>
+        <activity android:name=".DocActivity3"
+            android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden"
+            ></activity>
+        <activity
+            android:name=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".LoadingActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
