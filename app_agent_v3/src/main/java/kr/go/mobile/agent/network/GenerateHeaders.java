@@ -69,9 +69,8 @@ public class GenerateHeaders {
         Map<String, String> headers = initDefaultHeader();
 
         if(this.contentType == null) {
-            headers.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-        }
-        else {
+            throw new IllegalArgumentException("Content-Type 이 지정되어 있지 않습니다.");
+        } else {
             headers.put("Content-Type", this.contentType);
         }
 

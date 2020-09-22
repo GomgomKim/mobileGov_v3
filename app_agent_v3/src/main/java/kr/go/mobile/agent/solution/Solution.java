@@ -4,9 +4,8 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.os.RemoteException;
 import android.util.Log;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
 
@@ -25,9 +24,9 @@ public abstract class Solution<IN, OUT> {
     }
 
     public static class Result<OUT> {
-        public RESULT_CODE code;
-        public String errorMessage;
         public OUT out;
+        RESULT_CODE code;
+        String errorMessage;
         public Result(RESULT_CODE code) {
             this(code, null);
         }
@@ -35,145 +34,105 @@ public abstract class Solution<IN, OUT> {
             this.code = code;
             this.errorMessage = errorMessage;
         }
+
+        public RESULT_CODE getCode() {
+            return this.code;
+        }
+        public String getErrorMessage() { return this.errorMessage; }
+    }
+
+    public static class SolutionRuntimeException extends RuntimeException {
+        public SolutionRuntimeException(String message, Exception e) {
+            super(message, e);
+        }
     }
 
     public interface EventListener<OUT> {
-        // 사용자 취소
-        void onCancel(Context context);
-        // 모듈 연계 실패
+        // 모듈 연계 실패 (예외 발생)
         void onFailure(Context context, String message, Throwable t);
-        // 모듈 처리 에러
-        void onError(Context context, RESULT_CODE errorCode, String errorMessage);
         // 모듈 처리 정상
-        void onCompleted(Context context, OUT out);
+        void onCompleted(Context context, Result<OUT> out);
     }
 
     final Object LOCK = new Object();
-    final EventListener<OUT> mEventListener;
 
-    private Context mContext;
     boolean isOperation = false;
     boolean isCancel = false;
+    EventListener<OUT> mEventListener;
     Thread thread;
 
-    public Solution(EventListener<OUT> listener) {
-        this.mEventListener = (listener == null) ? new EventListener<OUT>() {
-            @Override
-            public void onCancel(Context context) {
-                Log.w("Solution.EventListener", "Solution.EventListener is null, Solution 생성자에 EventListener 를 선언하시기 바랍니다. (onCancel)");
-            }
+    public Solution(Context context) {
+        prepare(context);
+    }
 
+    protected void prepare(Context context) { }
+
+    public final void execute(Context context, EventListener<OUT> listener) {
+        execute(context, (IN) null, listener);
+    }
+
+    public final void execute(Context context, boolean enabledUI, EventListener<OUT> listener) {
+        execute(context, (IN) null, enabledUI, listener);
+    }
+
+    public final void execute(Context context, IN in, EventListener<OUT> listener) {
+        execute(context, in, false, listener);
+    }
+
+    public final void execute(final Context context, final IN in, boolean enabledUI, EventListener<OUT> listener) {
+        if (isOperation) {
+            Log.d(getClass().getSimpleName(), "이미 실행 중입니다.");
+            return;
+        }
+        isCancel = false;
+        isOperation = true;
+        mEventListener = (listener == null) ? new EventListener<OUT>() {
             @Override
             public void onFailure(Context context, String message, Throwable t) {
-                Log.w("Solution.EventListener", "Solution.EventListener is null, Solution 생성자에 EventListener 를 선언하시기 바랍니다. (onFailure)");
+                Log.w("Solution.EventListener", "Solution.EventListener is null, execute() 호출 시 EventListener 를 선언하시기 바랍니다. (onFailure)");
             }
 
             @Override
-            public void onError(Context context, RESULT_CODE errorCode, String errorMessage) {
-                Log.e("@@@", errorMessage + ", code : " + errorCode);
-                Log.w("Solution.EventListener", "Solution.EventListener is null, Solution 생성자에 EventListener 를 선언하시기 바랍니다. (onError)");
-            }
-
-            @Override
-            public void onCompleted(Context context, Object o) {
-                Log.w("Solution.EventListener", "Solution.EventListener is null, Solution 생성자에 EventListener 를 선언하시기 바랍니다. (onCompleted)");
+            public void onCompleted(Context context, Result<OUT> o) {
+                Log.w("Solution.EventListener", "Solution.EventListener is null, execute() 호출 시 EventListener 를 선언하시기 바랍니다. (onCompleted)");
             }
         } : listener;
-    }
 
-    public final void execute() {
-        execute((IN) null);
-    }
-
-    public final void execute(boolean isAsyncExecute) {
-        execute((IN) null, isAsyncExecute);
-    }
-
-    public final void execute(IN in) {
-        execute(in, true);
-    }
-
-    public final void execute(IN in, boolean isAsyncExecute) {
-        synchronized (LOCK) {
-            if (isOperation) {
-                Log.d(getClass().getSimpleName(), "이미 실행 중입니다.");
-                return;
-            }
-            isCancel = false;
-            isOperation = true;
-        }
-
-        this.mContext = getContext();
-
-        prepare(mContext, in);
-
-        final Result<OUT>[] result = new Result[1];
-
-        if (isAsyncExecute) {
+        if (enabledUI) {
+            process(context, in);
+        } else {
             thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    result[0] = execute(mContext);
-                    if(result[0] == null) {
-                        return;
-                    }
-                    processResult(mContext, result[0]);
+                    process(context, in);
                 }
             });
             thread.setName(getClass().getName());
             thread.start();
-        } else {
-            result[0] = execute(mContext);
-            if (result[0] == null) {
+        }
+    }
+
+    final void process(Context context, IN in) {
+        try {
+            Result<OUT> result = execute(context, in);
+            if (result == null) {
+                // result 가 null 이면 응답을 기다려야함.
                 return;
             }
-            processResult(mContext, result[0]);
-        }
-
-    }
-
-    protected void prepare(Context context, IN in) { }
-
-    protected abstract Result<OUT> execute(Context context);
-
-    protected void processResult(Context context, Result<OUT> result) {
-        if (result.code == RESULT_CODE._OK) {
-            onCompleted(result.out);
-        } else {
-            onError(result.code, result.errorMessage);
+            completedProcess(context, result);
+        } catch (SolutionRuntimeException e) {
+            failedProcess(context, e);
         }
     }
 
-    protected final void onCompleted(OUT out) {
-        synchronized (LOCK) {
-            isOperation = false;
-            if (isCancel) {
-                return;
-            }
-        }
-        mEventListener.onCompleted(mContext, out);
+    protected abstract Result<OUT> execute(Context context, IN in) throws SolutionRuntimeException;
+
+    protected final void completedProcess(Context context, Result<OUT> r) {
+        mEventListener.onCompleted(context, r);
     }
 
-    protected final void onCancel() {
-        synchronized (LOCK) {
-            this.isCancel = true;
-            this.isOperation = false;
-        }
-        mEventListener.onCancel(mContext);
-    }
-
-    protected final void onFailure(Throwable t) {
-        synchronized (LOCK) {
-            isOperation = false;
-        }
-        mEventListener.onFailure(mContext, t.getMessage(), t);
-    }
-
-    protected void onError(RESULT_CODE code, String errorMessage) {
-        synchronized (LOCK) {
-            isOperation = false;
-        }
-        mEventListener.onError(mContext, code, errorMessage);
+    protected final void failedProcess(Context context, Throwable t) {
+        mEventListener.onFailure(context, t.getMessage(), t);
     }
 
     protected Integer[] getRequestCodes() {
@@ -188,30 +147,17 @@ public abstract class Solution<IN, OUT> {
         if (thread != null) {
             thread.interrupt();
         }
-        synchronized (LOCK) {
-            isOperation = false;
-            isCancel = false;
-            mContext = null;
-        }
+        isOperation = false;
+        isCancel = false;
     }
-
 
     public void cancel() {
-        synchronized (LOCK) {
-            if(isCancel || !isOperation) {
-                return;
-            }
-            isCancel = true;
-        }
-
         if (thread != null) {
             thread.interrupt();
-        } else {
-            mEventListener.onCancel(mContext);
         }
     }
 
-    protected final Context getContext() throws RuntimeException {
+    final Context getContext() throws RuntimeException {
         // FIXME 확인 후 불필요할 경우 삭제
         SAGTApplication application = (SAGTApplication) getApplication();
         Context ctx = application.getTopActivity();
@@ -222,7 +168,7 @@ public abstract class Solution<IN, OUT> {
         }
     }
 
-    protected final Application getApplication() {
+    final Application getApplication() {
         try {
             @SuppressLint("PrivateApi") Class<?> appGlobalsClass = forName("android.app.AppGlobals");
             Method method = appGlobalsClass.getMethod("getInitialApplication");
@@ -236,3 +182,4 @@ public abstract class Solution<IN, OUT> {
         }
     }
 }
+

@@ -2,7 +2,6 @@ package kr.go.mobile.agent.v3.solution;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 import com.infratech.ve.agent.remote.VGObserver;
 import com.infratech.ve.agent.remote.VGRemote;
@@ -14,12 +13,11 @@ import org.json.JSONObject;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import kr.go.mobile.agent.service.monitor.ThreatData;
+import kr.go.mobile.agent.service.monitor.ThreatDetection;
 import kr.go.mobile.agent.solution.Solution;
+import kr.go.mobile.agent.utils.Log;
 
-import static kr.go.mobile.agent.service.monitor.ThreatData.STATUS_THREATS;
-
-public class VGuardSolution extends Solution<Void, ThreatData> implements VGObserver {
+public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> implements VGObserver {
 
     private static final String TAG = VGuardSolution.class.getSimpleName();
 
@@ -37,12 +35,12 @@ public class VGuardSolution extends Solution<Void, ThreatData> implements VGObse
     VGRemote mVGRemote;
     final AtomicBoolean isBound = new AtomicBoolean(false);
 
-    public VGuardSolution(EventListener<ThreatData> listener) {
-        super(listener);
+    public VGuardSolution(Context context) {
+        super(context);
     }
 
     @Override
-    protected void prepare(Context context, Void in) {
+    protected void prepare(Context context) {
         Log.d(TAG, "STEP 1. V-Guard 초기화 ");
         mVGRemote = new VGRemote(context, this);
     }
@@ -55,18 +53,25 @@ public class VGuardSolution extends Solution<Void, ThreatData> implements VGObse
 
     @Override
     public void onUnbinded() {
-        Log.d(TAG, "V-Guard 연결 해제");
+        Log.w(TAG, "V-Guard 연결 해제");
         mVGRemote.closeUnRegisterReceiver();
         isBound.getAndSet(false);
     }
 
     @Override
     public void onRegistedReceiver(Intent intent) {
+        // VG 로부터 전달받는 이벤트.
         String action = intent.getAction();
         String strThreatData = intent.getStringExtra(VGRemote.SECYRITYLIST);
         if (Objects.equals(action, VGRemote.SECYRITYACTION) && strThreatData != null) {
-            Result<ThreatData> result = validSecurityThreat(strThreatData, true);
-            processResult(getContext(), result);
+            try {
+                ThreatDetection.STATUS status = parse(strThreatData, true);
+                Result<ThreatDetection.STATUS> result = new Result<>(RESULT_CODE._OK);
+                result.out = status;
+                completedProcess(null, result);
+            } catch (JSONException e) {
+                Log.w(TAG, "V-Guard 엔터프라이즈로부터 수신한 이벤트 값을 확인할 수 없습니다.");
+            }
         } else {
             Log.w(TAG, "V-Guard 엔터프라이즈로부터 수신한 이벤트 값을 확인할 수 없습니다.");
         }
@@ -74,11 +79,11 @@ public class VGuardSolution extends Solution<Void, ThreatData> implements VGObse
 
 
     @Override
-    protected Result<ThreatData> execute(Context context) {
+    protected Result<ThreatDetection.STATUS> execute(Context context, Void v) throws SolutionRuntimeException {
 
-        while (true) {
+        do {
             if (!isBound.compareAndSet(false, false)) break;
-        }
+        } while (true);
 
         int resultCode;
 
@@ -92,17 +97,20 @@ public class VGuardSolution extends Solution<Void, ThreatData> implements VGObse
         if  ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
             return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
         }
-/*
         ret = mVGRemote.VGRunCMD(VGRemote.CMD_POLICY_APPLY);
         if  ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
-            return new Result(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
+            return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
         }
-*/
         Log.d(TAG, "STEP 5. V-Guard 스캔을 시작합니다.");
         ret = mVGRemote.VGRunCMD(VGRemote.CMD_VG_SECURITY_THREAT);
-        return validSecurityThreat(ret);
+        try {
+            Result<ThreatDetection.STATUS> result = new Result<>(RESULT_CODE._OK);
+            result.out = parse(ret);
+            return result;
+        } catch (JSONException e) {
+            throw new SolutionRuntimeException("응답 데이터 처리 중 에러가 발생하였습니다.", e);
+        }
     }
-
 
     private int checkResultMessage(@NotNull String result) {
         String[] tmp = result.split(",");
@@ -153,60 +161,46 @@ public class VGuardSolution extends Solution<Void, ThreatData> implements VGObse
         return ERROR_NO_BIND;
     }
 
-    private Result<ThreatData> validSecurityThreat(String strThreatData) {
-        return validSecurityThreat(strThreatData, false);
+    private ThreatDetection.STATUS parse(String strThreatData) throws JSONException {
+        return parse(strThreatData,false);
     }
 
-    private Result<ThreatData> validSecurityThreat(String strThreatData, boolean realtime) {
+    private ThreatDetection.STATUS parse(String strThreatData, boolean realtime) throws JSONException {
         Log.d(TAG, "STEP 6. V-Guard 스캔 결과 확인");
         JSONObject jsonObject;
         String VG_DATA_SPLIT = ";";
         String[] arrData = strThreatData.split(VG_DATA_SPLIT);
-        ThreatData threatData = new ThreatData();
-        try {
-            byte realtimeFlag = realtime ? (byte) 1 : (byte) 0;
-            String VG_IS_ROOTING_DEVICE = "isRooting";
-            String VG_IS_CHECKED_MALWARE = "isMalwareCheck";
-            String VG_ENABLED_REALTIME_SCAN = "isRealtimeScanServiceEnable";
 
-            for (String data : arrData) {
-                if (data.contains(VG_IS_CHECKED_MALWARE)) {
-                    jsonObject = new JSONObject(data);
-                    if (jsonObject.getBoolean(VG_IS_CHECKED_MALWARE)) {
-                        Log.d(TAG, "종료 - 악성코드 존재");
-                        threatData = new ThreatData(STATUS_THREATS,
-                                "단말에 악성코드(앱)이 존재합니다. 치료 후 다시 실행해주시기 바랍니다.",
-                                realtimeFlag);
-                        break;
-                    }
-                } else if (data.contains(VG_IS_ROOTING_DEVICE)) {
-                    jsonObject = new JSONObject(data);
-                    if (jsonObject.getBoolean(VG_IS_ROOTING_DEVICE)) {
-                        Log.d(TAG, "종료 - 루팅 단말");
-                        threatData = new ThreatData(STATUS_THREATS,
-                                "루팅된 단말입니다. 보안을 위하여 루팅 단말에서 실행할 수 없습니다.",
-                                realtimeFlag);
-                        break;
-                    }
-                } else if (data.contains(VG_ENABLED_REALTIME_SCAN)) {
-                    jsonObject = new JSONObject(data);
-                    if (!jsonObject.getBoolean(VG_ENABLED_REALTIME_SCAN)) {
-                        Log.d(TAG, "종료 - 실시간 검사 비활성화");
-                        threatData = new ThreatData(STATUS_THREATS,
-                                "보안을 위하여 실시간 검사가 활성화되어 있어야 합니다. V-Guard 환경설정에서 실시간 검사를 활성화해주시기 바랍니다.",
-                                realtimeFlag);
-                        break;
-                    }
+        byte realtimeFlag = realtime ? (byte) 1 : (byte) 0;
+        String VG_IS_ROOTING_DEVICE = "isRooting";
+        String VG_IS_CHECKED_MALWARE = "isMalwareCheck";
+        String VG_ENABLED_REALTIME_SCAN = "isRealtimeScanServiceEnable";
+
+        for (String data : arrData) {
+            if (data.contains(VG_IS_CHECKED_MALWARE)) {
+                jsonObject = new JSONObject(data);
+                if (jsonObject.getBoolean(VG_IS_CHECKED_MALWARE)) {
+                    Log.d(TAG, "종료 - 악성코드 존재");
+                    return ThreatDetection.STATUS._EXIST_MALWARE;
+
+                }
+            } else if (data.contains(VG_IS_ROOTING_DEVICE)) {
+                jsonObject = new JSONObject(data);
+                if (jsonObject.getBoolean(VG_IS_ROOTING_DEVICE)) {
+                    Log.d(TAG, "종료 - 루팅 단말");
+                    return ThreatDetection.STATUS._ROOTING_DEVICE;
+                }
+            } else if (data.contains(VG_ENABLED_REALTIME_SCAN)) {
+                jsonObject = new JSONObject(data);
+                if (!jsonObject.getBoolean(VG_ENABLED_REALTIME_SCAN)) {
+                    Log.d(TAG, "종료 - 실시간 검사 비활성화");
+                    return ThreatDetection.STATUS._DISABLED_REAL_TIME_SCAN;
+
                 }
             }
-        } catch (JSONException e) {
-            Log.e(TAG, "종료 - 결과 확인 중 에러", e);
-            return new Result<>(RESULT_CODE._INVALID, e.getMessage());
         }
 
-        Result<ThreatData> result = new Result<>(RESULT_CODE._OK);
-        result.out = threatData;
-        return result;
+        return ThreatDetection.STATUS._SAFE;
     }
 
     private String convertErrorMessage(int errorCode) {
@@ -234,11 +228,4 @@ public class VGuardSolution extends Solution<Void, ThreatData> implements VGObse
         }
     }
 
-    @Override
-    protected void processResult(Context context, Result<ThreatData> result) {
-        super.processResult(context, result);
-        if(mVGRemote != null) {
-            mVGRemote.close();
-        }
-    }
 }

@@ -64,7 +64,7 @@ public class Utils {
 		private static boolean ENABLE = true;
 		private static final String TAG = TimeStamp.class.getSimpleName();
 		private static final Map<String, Long> sTEMP= new HashMap<String, Long>(0);
-		
+
 		public static void startTime(String tag) {
 			if (ENABLE && !sTEMP.containsKey(tag)) {
 				sTEMP.put(tag, System.currentTimeMillis());
@@ -75,16 +75,16 @@ public class Utils {
 			if (ENABLE) {
 				if (sTEMP.containsKey(tag)) {
 					Long currentTime = System.currentTimeMillis();
-					Long prevTime = sTEMP.get(tag);
+					Long prevTime = sTEMP.remove(tag);
 					LogUtil.d(TAG, String.format("%s: %s(ms)", tag, currentTime - prevTime));
-					sTEMP.remove(tag);
+//					sTEMP.remove(tag);
 				} else {
 					LogUtil.d(TAG, String.format("undefined %s (after calling startTime(String tag))", tag));
 				}
 			}
 		}
 		
-		public void clear() {
+		public static void clear() {
 			sTEMP.clear();
 		}
 	}

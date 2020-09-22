@@ -70,6 +70,7 @@ public class MobileGovLoadingActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TimeStamp.startTime("estimate second init time");
 
         // 상단 타이틀바 제거
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -339,6 +340,8 @@ public class MobileGovLoadingActivity extends Activity {
             } else {
                 readyService = false;
                 // 서명값이 존재하지 않으면 서명값을 요청. GPKI 인증서 로그인
+                TimeStamp.endTime("estimate init time");
+                TimeStamp.endTime("estimate second init time");
                 LogUtil.d(getClass(), "show CertList", LOG_ENABLE);
                 CertManager.showCertList(this);
                 // -->> 리턴값은 onActivityResult() 메소드를 통해서 받음

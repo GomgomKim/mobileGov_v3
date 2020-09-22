@@ -28,13 +28,13 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
 
     private MagicLine magicLine;
 
-    public MagicLineClientSolution(EventListener<UserSigned> listener) {
-        super(listener);
+    public MagicLineClientSolution(Context context) {
+        super(context);
     }
 
     @Override
-    protected void prepare(Context context, Void in) {
-        super.prepare(context, in);
+    protected void prepare(Context context) {
+        super.prepare(context);
 
         Log.d(TAG, "STEP 1. 초기화");
         try {
@@ -50,7 +50,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                     context.getString(R.string.import_from_internet),
                     context.getString(R.string.import_from_intra));
         } catch (Exception e) {
-            onFailure(e);
+            failedProcess(context, e);
             e.printStackTrace();
         }
     }
@@ -117,11 +117,10 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
     }
 
     @Override
-    protected Result<UserSigned> execute(Context context) {
-        Result<UserSigned> ret;
+    protected Result<UserSigned> execute(Context context, Void v) {
+        Result<UserSigned> ret = null;
         try {
             _showCertList(context);
-            ret = null;
         } catch (Exception e) {
             Log.e(TAG, "인증서 리스트 호출 에러", e);
             ret = new Result<>(RESULT_CODE._INVALID, e.getMessage());
@@ -136,13 +135,13 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
 
     @Override
     protected boolean onActivityResult(Context context, int requestCode, int resultCode, Intent intent) {
-        switch (requestCode) {
-            case REQUEST_CODE_CERT_MANAGER:
-                // --> _showCertList()
-                execute(false);
-                return true;
-            case REQUEST_CODE_CERT_SIGN:
-                try {
+        try {
+            switch (requestCode) {
+                case REQUEST_CODE_CERT_MANAGER: {
+                    _showCertList(context);
+                    break;
+                }
+                case REQUEST_CODE_CERT_SIGN: {
                     if (resultCode == Activity.RESULT_OK) {
                         // FIXME 고유 암호값으로 사용할 수 있을까??
                         Log.e(TAG, "getSigner ::: " + new String(MagicLine.getSignerVIDRandom(intent)));
@@ -150,9 +149,11 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
 
                         String subjectDN = MagicLine.getSignerSubjectDN(intent);
                         String signedDataBase64 = MagicLine.getSignedDataBase64(intent);
-                        int signedSessionTimeout = context.getResources().getInteger(R.integer.SignedSessionTimeoutSec);
-                        UserSigned signed = new UserSigned(subjectDN, signedDataBase64, signedSessionTimeout);
-                        onCompleted(signed);
+
+                        UserSigned signed = new UserSigned(subjectDN, signedDataBase64);
+                        Result<UserSigned> result = new Result<>(RESULT_CODE._OK);
+                        result.out = signed;
+                        completedProcess(context, result);
                     } else {
                         int errorCode = MagicLine.getErrorCode(intent);
                         switch (errorCode) {
@@ -162,24 +163,27 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                                 try {
                                     _showCertManager(context);
                                 } catch (Exception t) {
-                                    onFailure(t);
+                                    failedProcess(context, t);
                                 }
                                 break;
                             case MagicLineType.MAGICLINE_SIGN_USER_CANCEL:
                                 // 사용자 취소 -> 앱 종료
-                                onCancel();
+                                completedProcess(context, new Result<UserSigned>(RESULT_CODE._CANCEL, "사용자가 로그인을 취소하였습니다."));
                                 break;
                             default:
                                 // 인증서 모듈 연동 에러 -> 앱 종료
-                                onError(RESULT_CODE._INVALID, String.format("지원센터에 문의 바랍니다. (errorCode: %d)", errorCode));
+                                completedProcess(context, new Result<UserSigned>(RESULT_CODE._INVALID, String.format("지원센터에 문의 바랍니다. (errorCode: %d)", errorCode)));
                                 break;
                         }
-
                     }
-                } catch (Exception e) {
-                    onFailure(e);
+                    break;
                 }
-                return true;
+                default:
+                    return false;
+            }
+            return true;
+        } catch (Exception e) {
+            failedProcess(context, e);
         }
         return super.onActivityResult(context, requestCode, resultCode, intent);
     }

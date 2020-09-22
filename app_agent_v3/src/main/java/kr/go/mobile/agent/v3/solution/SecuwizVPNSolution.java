@@ -27,14 +27,14 @@ import org.json.JSONTokener;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import kr.go.mobile.agent.service.monitor.SecureNetworkData;
+import kr.go.mobile.agent.service.monitor.SecureNetwork;
 import kr.go.mobile.agent.solution.Solution;
 import kr.go.mobile.agent.utils.Aria;
 import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.agent.utils.ResourceUtils;
 import kr.go.mobile.mobp.iff.R;
 
-public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetworkData> implements ServiceConnection {
+public class SecuwizVPNSolution extends Solution<String[], SecureNetwork.STATUS> implements ServiceConnection {
 
     private static final String TAG = SecuwizVPNSolution.class.getSimpleName();
 
@@ -43,7 +43,7 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
     public static final int SECUWIZ_VPN_STATUS_CONNECTING= 2;
 
     private static final String ANDROID_CONNECTIVITY_CHANGE = "android.net.conn.CONNECTIVITY_CHANGE";
-    private static final String SECUWIZ_VPN_STATUS_ACTION = "com.secuwiz.SecuwaySSL.Service.STATUS";
+    private static final String SECUWIZ_VPN_STATUS_RECEIVER_ACTION = "com.secuwiz.SecuwaySSL.Service.STATUS";
     private static final String SECUWIZ_VPN_SERVICE_ACTION = "net.secuwiz.SecuwaySSL.moi";
     private static final String SECUWIZ_VPN_PACKAGE_NAME = "net.secuwiz.SecuwaySSL.moi";
 
@@ -60,20 +60,12 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
     private final BroadcastReceiver mVPNReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (SECUWIZ_VPN_STATUS_ACTION.equals(intent.getAction())) {
+            if (SECUWIZ_VPN_STATUS_RECEIVER_ACTION.equals(intent.getAction())) {
                 switch (intent.getIntExtra("STATUS", SECUWIZ_VPN_STATUS_DISCONNECTION)) {
                     case SECUWIZ_VPN_STATUS_CONNECTION:
-                        if (secureNetworkData == null) {
+                        if (serviceVPN == null) {
                             Log.i(TAG, "기존 보안 네트워크가 연결되어 있습니다.");
-                            if (mVpnService == null) {
-                                endPrevConnection = true;
-                            } else {
-                                try {
-                                    mVpnService.StopVpn();
-                                } catch (RemoteException e) {
-                                    throw new RuntimeException("보안 네트워크 제어 중 에러가 발생하였습니다.", e);
-                                }
-                            }
+                            stopPrevConnection = true;
                             return;
                         }
 
@@ -91,8 +83,9 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
                         Log.d(TAG, "Secuwiz SSL-VPN 연결 중");
                         break;
                     case SECUWIZ_VPN_STATUS_DISCONNECTION:
-                        Log.d(TAG, "STEP 3. Secuwiz SSL-VPN 연결 해제");
-                        if(secureNetworkData == null) return;
+                        if(serviceVPN == null) return;
+
+                        Log.d(TAG, "STEP 3. Secuwiz SSL-VPN 연결 해제됨");
                         int newValue = status.get() & ~STATUS_SECUWIZ_VPN_CONNECTION;
                         status.getAndSet(newValue);
                         break;
@@ -120,11 +113,11 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
                     status.getAndSet(newValue);
                 }
             }
-            try {
-                doComplete();
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                doComplete();
+//            } catch (RemoteException e) {
+//                e.printStackTrace();
+//            }
         }
     };
 
@@ -133,11 +126,11 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
         public void onAvailable(@NonNull Network network) {
             Log.d(TAG, "STEP 4. Android VPN 설정 완료");
             status.addAndGet(STATUS_SECUWIZ_VPN_CONNECTION);
-            try {
-                doComplete();
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                doComplete();
+//            } catch (RemoteException e) {
+//                e.printStackTrace();
+//            }
             Log.d(TAG, "onAvailable: " + network.toString());
             super.onAvailable(network);
 
@@ -172,7 +165,7 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
     };
 
     // SECUWIZ SSL-VPN 서비스를 사용하기 위한 객체
-    private MobileApi mVpnService = null;
+    private MobileApi serviceVPN = null;
     // VPN 연결 재시도 횟수
     int VPN_CONNECT_RETRY_COUNT;
     // VPN 연결 재시도 딜레리 시간
@@ -183,69 +176,62 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
     String SECUWAY_SSL_SERVER;
     int SECUWAY_SSL_VERSION;
 
-    boolean endPrevConnection = false;
+    boolean stopPrevConnection = false;
     AtomicInteger status = new AtomicInteger(STATUS_NOT_READY);
-    SecureNetworkData secureNetworkData;
     int retryCount = 0;
 
-    public SecuwizVPNSolution(EventListener<SecureNetworkData> listener) {
-        super(listener);
-    }
+    public SecuwizVPNSolution(Context context) {
+        super(context);
 
-    @Override
-    protected void prepare(Context context, SecureNetworkData secureNetworkData) {
-        super.prepare(context, secureNetworkData);
-
-        this.secureNetworkData = secureNetworkData;
-        this.retryCount = 0;
         SECUWAY_SSL_SERVER = new Aria(context.getString(R.string.MagicMRSLicense)).decrypt(context.getString(R.string.SecuwaySSLServer));
         SECUWAY_SSL_VERSION = context.getResources().getInteger(R.integer.SecuwaySSLVersion);
         DELAY_FOR_VPN_CONFIG = getDelaySecForVPNConfig(context) * 1000;
         VPN_CONNECT_RETRY_COUNT = context.getResources().getInteger(R.integer.VpnConnectRetryCnt);
         VPN_CONNECT_RETRY_DELAY = context.getResources().getInteger(R.integer.VpnConnectRetryDelay);
 
-        if (mVpnService == null) {
-            // Secuway SSL-VPN SERVICE 상태값을 받을 수 있는 리시버 등록.
-            IntentFilter filter = new IntentFilter(SECUWIZ_VPN_STATUS_ACTION);
-            if (CHECK_ANDROID_FRAMEWORK_VPN) {
-                filter.addAction(ANDROID_CONNECTIVITY_CHANGE);
-            }
-            context.registerReceiver(mVPNReceiver, filter);
+        // Secuway SSL-VPN SERVICE 상태값을 받을 수 있는 리시버 등록.
+        IntentFilter filter = new IntentFilter(SECUWIZ_VPN_STATUS_RECEIVER_ACTION);
+        if (CHECK_ANDROID_FRAMEWORK_VPN) {
+            filter.addAction(ANDROID_CONNECTIVITY_CHANGE);
+        }
+        context.registerReceiver(mVPNReceiver, filter);
 
-            // FIXME 현재 VPN 이벤트에 대해서는 동작하지 않는 것으로 보임.
-            // Android System 에서 VPN 이 설정되었는지 확인하기 위한 callback 등록
-            if (false) {
-                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkRequest request = new NetworkRequest.Builder()
-                        .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
-                        .build();
-                cm.registerNetworkCallback(request, networkCallback);
-            }
+        // FIXME 현재 VPN 이벤트에 대해서는 동작하지 않는 것으로 보임.
+        // Android System 에서 VPN 이 설정되었는지 확인하기 위한 callback 등록
+        if (CHECK_ANDROID_FRAMEWORK_VPN || false) {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkRequest request = new NetworkRequest.Builder()
+                    .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+                    .build();
+            cm.registerNetworkCallback(request, networkCallback);
+        }
+    }
 
-            Intent bindServiceInfo = new Intent(SECUWIZ_VPN_SERVICE_ACTION);
-            bindServiceInfo.setPackage(SECUWIZ_VPN_PACKAGE_NAME);
+    @Override
+    protected void prepare(Context context) {
+        super.prepare(context);
 
-            if(context.bindService(bindServiceInfo, this,  Context.BIND_AUTO_CREATE)) {
-                Log.d(TAG, "STEP 1. SecuwizVPN 초기화");
-                // 서비스가 바인딩되면 receiver 로 현재 VPN 상태가 바로 온다?
-            } else {
-                Log.e(TAG, "STEP 1. SecuwizVPN 초기화 - 실패");
-            }
+        Intent bindServiceInfo = new Intent(SECUWIZ_VPN_SERVICE_ACTION);
+        bindServiceInfo.setPackage(SECUWIZ_VPN_PACKAGE_NAME);
+
+        if(context.bindService(bindServiceInfo, this,  Context.BIND_AUTO_CREATE)) {
+            Log.d(TAG, "STEP 1. SecuwizVPN 초기화");
+        } else {
+            throw new RuntimeException("SecuwizVPN 서비스 바인딩을 시도할 수 없습니다.");
         }
     }
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
-        mVpnService = MobileApi.Stub.asInterface(service);
+        serviceVPN = MobileApi.Stub.asInterface(service);
         status.getAndSet(STATUS_READY);
-        if (endPrevConnection) {
-            try {
-                mVpnService.StopVpn();
-                endPrevConnection = false;
-                Log.i(TAG, "기존 네트워크를 종료합니다.");
-            } catch (RemoteException e) {
-                throw new RuntimeException("보안 네트워크 제어 중 에러가 발생하였습니다.", e);
+        try {
+            if (serviceVPN.VpnStatus() == SECUWIZ_VPN_STATUS_CONNECTION) {
+                Log.i(TAG, "기존 보안 네트워크를 종료합니다.");
+                serviceVPN.StopVpn();
             }
+        } catch (RemoteException e) {
+            throw new RuntimeException("보안 네트워크 제어 중 에러가 발생하였습니다.", e);
         }
         Log.d(TAG, "STEP 2. SecuwizVPN 서비스 연결 성공");
     }
@@ -254,23 +240,26 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
     public void onServiceDisconnected(ComponentName name) {
         Log.d(TAG, "SecuwizVPN 서비스 연결 종료");
         status.getAndSet(STATUS_NOT_READY);
-        mVpnService = null;
+        serviceVPN = null;
     }
 
     @Override
-    protected Result<SecureNetworkData> execute(Context context) {
+    protected Result<SecureNetwork.STATUS> execute(Context context, String[] loginInfo) throws SolutionRuntimeException {
 
         do {
-            if (secureNetworkData == null) {
-                finish();
-                return null;
+            if(loginInfo.length != 3) {
+                throw new RuntimeException("SecuwizVPN 을 시작하기 위한 필수 정보가 없습니다.");
             }
         } while (status.compareAndSet(STATUS_NOT_READY, STATUS_NOT_READY));
 
+        this.retryCount = 0;
+        String loginId = loginInfo[0];
+        String loginPw = loginInfo[1];
+        SecureNetwork.CMD command = SecureNetwork.CMD.valueOf(loginInfo[2]);
         try {
-            switch (secureNetworkData.getCommand()) {
+            switch (command) {
                 case _START:
-                    handleConnectionAction();
+                    handleConnectionAction(loginId, loginPw);
                     break;
                 case _STOP:
                     handleDisconnectionAction();
@@ -279,92 +268,103 @@ public class SecuwizVPNSolution extends Solution<SecureNetworkData, SecureNetwor
                     handleDestroyAction();
                     break;
                 default:
-                    break;
+                    throw new IllegalStateException("Unexpected value: " + command);
             }
         } catch (RemoteException e) {
-            e.printStackTrace();
+            throw new SolutionRuntimeException("SecuwizVPN 서비스 호출 중 에러가 발생하였습니다.", e);
         }
-        return null; // 리턴값이 null 이면, 아무것도 처리하지 않음.
+        return null;
     }
 
+    /*
     protected void doComplete() throws RemoteException {
-        if (mVpnService == null || secureNetworkData == null) {
+        if (serviceVPN == null || secureNetwork == null) {
             return;
         }
-        SecureNetworkData.STATUS s = SecureNetworkData.STATUS._DISCONNECTED;
-        switch (mVpnService.VpnStatus()) {
+        SecureNetwork.STATUS s = SecureNetwork.STATUS._DISCONNECTED;
+        switch (serviceVPN.VpnStatus()) {
             case SECUWIZ_VPN_STATUS_DISCONNECTION:
-                s = SecureNetworkData.STATUS._DISCONNECTED;
+                s = SecureNetwork.STATUS._DISCONNECTED;
                 break;
             case SECUWIZ_VPN_STATUS_CONNECTION:
-                s = SecureNetworkData.STATUS._CONNECTED;
+                s = SecureNetwork.STATUS._CONNECTED;
                 break;
             case SECUWIZ_VPN_STATUS_CONNECTING:
-                s = SecureNetworkData.STATUS._CONNECTING;
+                s = SecureNetwork.STATUS._CONNECTING;
                 break;
         }
-        secureNetworkData.changeStatus(s);
+        secureNetwork.changeStatus(s);
         if (status.compareAndSet(STATUS_COMMON_BASED_VPN_CONNECTION, STATUS_COMMON_BASED_VPN_CONNECTION)) {
-            onCompleted(secureNetworkData);
+            onCompleted(secureNetwork);
         } else if (status.compareAndSet(STATUS_COMMON_BASED_VPN_DISCONNECTION, STATUS_COMMON_BASED_VPN_DISCONNECTION)) {
-            onCompleted(secureNetworkData);
-        } else if (status.compareAndSet(STATUS_READY, STATUS_READY) && secureNetworkData.retryConnection()) {
+            onCompleted(secureNetwork);
+        } else if (status.compareAndSet(STATUS_READY, STATUS_READY) && secureNetwork.retryConnection()) {
             handleConnectionAction();
         }
     }
+     */
 
-    private void handleConnectionAction() throws RemoteException {
-        switch (mVpnService.VpnStatus()) {
+    private void handleConnectionAction(String id, String pw) throws RemoteException {
+        switch (serviceVPN.VpnStatus()) {
             case SECUWIZ_VPN_STATUS_DISCONNECTION:
                 if (retryCount > VPN_CONNECT_RETRY_COUNT) {
-                    onError(RESULT_CODE._FAIL, "잠시 후 다시 시도해주시기 바랍니다.");
-                    return;
+                    completedProcess(null, new Result<SecureNetwork.STATUS>(RESULT_CODE._FAIL, "잠시 후 다시 시도해주시기 바랍니다."));
                 }
                 Log.d(TAG, "상태 변경 시도 : 연결해제 -> 연결");
-                String result = mVpnService.StartVpn(SECUWAY_SSL_SERVER, secureNetworkData.getLoginID(), secureNetworkData.getLoginPw(), SECUWAY_SSL_VERSION);
+                String result = serviceVPN.StartVpn(SECUWAY_SSL_SERVER, id, pw, SECUWAY_SSL_VERSION);
+
                 if (result.equals("0")) {
                     retryCount = 0;
                     Log.d(TAG, "STEP 3. Secuwiz SSL-VPN 연결시도");
+                    do {
+                        if (status.compareAndSet(STATUS_COMMON_BASED_VPN_CONNECTION, STATUS_COMMON_BASED_VPN_CONNECTION)) {
+                            Result<SecureNetwork.STATUS> ret = new Result<>(RESULT_CODE._OK, "");
+                            ret.out = SecureNetwork.STATUS._CONNECTED;
+                            completedProcess(null, ret);
+                            break;
+                        }
+                    } while (true);
                 } else if (result.equals("이미 로그인한 사용자입니다.")) {
                     try{
                         Thread.sleep(VPN_CONNECT_RETRY_DELAY);
                     } catch (InterruptedException ignored) {
                     }
                     retryCount++;
-                    handleConnectionAction();
                     Log.d(TAG, "연결 재시도");
+                    handleConnectionAction(id, pw);
                 } else {
                     retryCount = 0;
-                    Log.d(TAG, "연결 실패 : " + result);
+                    Log.d(TAG, "VPN 서버로 부터 응답 받은 실패 메시지 : " + result);
                     // 2019-04-19 : NIA 요청으로 인하여 VPN 서버로부터 전달되는 메시지는 모두 동일하게 표현.
-                    onError(RESULT_CODE._FAIL, "보안 네트워크 연결을 실패하였습니다");
+                    completedProcess(null, new Result<SecureNetwork.STATUS>(RESULT_CODE._FAIL, "보안 네트워크 연결을 실패하였습니다"));
                 }
                 break;
             case SECUWIZ_VPN_STATUS_CONNECTION:
             case SECUWIZ_VPN_STATUS_CONNECTING:
-                Log.d(TAG, "연결중/연결 -> 연결, 연결해제 후 다시 연결 요청을 합니다.");
-                mVpnService.StopVpn();
-                break;
+                Log.w(TAG, "연결중/연결 -> 연결, 재연결이 필요한가요?");
+                completedProcess(null, new Result<SecureNetwork.STATUS>(RESULT_CODE._CANCEL, "이미 연결 중입니다."));
             default:
-                throw new IllegalStateException("SecuwizVPNSolution.handleConnection() Unexpected value: " + mVpnService.VpnStatus());
+                throw new IllegalStateException("SecuwizVPNSolution.handleConnection() Unexpected value: " + serviceVPN.VpnStatus());
         }
     }
 
-    private void handleDisconnectionAction() throws RemoteException {
-        switch (mVpnService.VpnStatus()) {
+    private Result<SecureNetwork.STATUS> handleDisconnectionAction() throws RemoteException {
+        switch (serviceVPN.VpnStatus()) {
             case SECUWIZ_VPN_STATUS_DISCONNECTION:
                 Log.d(TAG, "이미 연결해제 상태압니다.");
                 break;
             case SECUWIZ_VPN_STATUS_CONNECTION:
             case SECUWIZ_VPN_STATUS_CONNECTING:
-                mVpnService.StopVpn();
+                serviceVPN.StopVpn();
+                break;
             default:
-                throw new IllegalStateException("SecuwizVPNSolution.handleDisconnection() Unexpected value: " + mVpnService.VpnStatus());
+                throw new IllegalStateException("SecuwizVPNSolution.handleDisconnection() Unexpected value: " + serviceVPN.VpnStatus());
         }
+        return null;
     }
 
-    private void handleDestroyAction() {
-
+    private Result<SecureNetwork.STATUS> handleDestroyAction() {
+        return null;
     }
 
     private int getDelaySecForVPNConfig(Context c) {

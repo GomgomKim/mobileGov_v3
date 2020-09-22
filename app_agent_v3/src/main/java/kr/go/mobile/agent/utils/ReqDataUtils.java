@@ -13,9 +13,6 @@ import kr.go.mobile.agent.service.broker.UserAuthentication;
 
 public class ReqDataUtils {
 
-    /*
-    시간 체크할 모듈
-     */
     static Calendar CALENDAR = Calendar.getInstance();
     static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmssSSSSSS", Locale.KOREA);
 

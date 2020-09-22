@@ -13,6 +13,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import java.util.Objects;
 
 import kr.go.mobile.agent.service.broker.UserAuthentication;
+import kr.go.mobile.agent.solution.Solution;
+import kr.go.mobile.agent.solution.SolutionManager;
 import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.agent.v3.CommonBaseInitActivity;
 
@@ -31,65 +33,63 @@ public class SessionService extends Service {
     public static final int RESULT_SIGNED_REGISTER_FAIL = 5001;
 
     private class SessionServiceBinder extends Binder implements ILocalSessionService {
-        private UserSigned userSigned = null;
-        private UserAuthentication authentication = null;
-
         @Override
         public String getUserID() {
-            return this.userSigned.getUserID();
+            return userSigned.getUserID();
         }
 
         @Override
         public String getUserDN() {
-            return this.userSigned.getUserDN();
+            return userSigned.getUserDN();
         }
 
         @Override
-        public void validSignedSession() throws UserSigned.ExpiredException {
-            if (userSigned != null) {
-                userSigned.validSession();
-            } else {
-                throw new NullPointerException();
-            }
+        public void registerSigned(UserSigned signed) {
+            userSigned.setSigned(signed);
         }
 
         @Override
         public void registerAuthentication(UserAuthentication authentication) {
-            if (Objects.equals(authentication.userDN, userSigned.getUserDN())) {
-                this.authentication = authentication;
-                sendBroadcastToActivity(CommonBaseInitActivity.EVENT_TYPE_AUTH_REGISTERED_OK);
-            } else {
-                sendBroadcastToActivity(CommonBaseInitActivity.EVENT_TYPE_SIGNED_REGISTERED_ERROR,
-                        "사용자가 변경되어 인증서 재로그인이 필요합니다.");
-            }
+           SessionService.this.authentication = authentication;
         }
 
         @Override
         public UserAuthentication getUserAuthentication() {
-            return this.authentication;
+            return authentication;
         }
 
         @Override
-        public UserSigned getUserSigned() { return this.userSigned; }
+        public UserSigned getUserSigned() {
+            if (userSigned == null) {
+                try {
+                    userSigned = new UserSigned(SessionService.this, SolutionManager.DREAM_SECURITY_GPKI_LOGIN);
+                } catch (SolutionManager.ModuleNotFoundException e) {
+                    throw new RuntimeException("보안 솔루션 모듈 로드를 실패하였습니다. (솔루션 : " + e.getNotFoundSolutionSimpleName()  +")", e);
+                }
+            }
+            return userSigned;
+        }
 
 //        @Override
         public void clearUserAuthentication() {
-            if (this.authentication != null)
-                this.authentication.clear();
+            if (authentication != null)
+                authentication.clear();
         }
     }
 
-    SessionServiceBinder binder = new SessionServiceBinder();
+    private UserSigned userSigned = null;
+    private UserAuthentication authentication = null;
     private ResultReceiver resultReceiver;
+    SessionServiceBinder binder;
+
     @Override
     public void onCreate() {
-        Log.i(TAG, "세션 서비스 생성");
+        binder = new SessionServiceBinder();
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        Log.i(TAG, "세션 서비스 바인딩 요청");
         this.resultReceiver = intent.getParcelableExtra("result");
         return binder;
     }
@@ -105,8 +105,8 @@ public class SessionService extends Service {
                 Log.e(TAG, "사용자 서명이 존재하지 않습니다.");
                 throw new Exception("사용자 서명이 존재하지 않습니다.");
             }
-            binder.userSigned = intent.getParcelableExtra("signed_data");
-            if (binder.userSigned == null) {
+            userSigned = intent.getParcelableExtra("signed_data");
+            if (userSigned == null) {
                 throw new Exception("사용자 서명이 존재하지 않습니다.");
             }
             Log.i(TAG, "사용자 서명 등록 성공");
@@ -114,28 +114,11 @@ public class SessionService extends Service {
                 Log.w(TAG, "사용자 서명 재등록");
             }
             resultReceiver.send(RESULT_SIGNED_REGISTER_OK, null);
-//            sendBroadcastToActivity(CommonBaseInitActivity.EVENT_TYPE_SIGNED_REGISTERED_OK);
             return START_REDELIVER_INTENT; // 서비스가 재시작될 경우 현재 인텐트를 그대로 전달
         } catch (Exception e) {
             Log.e(TAG, "사용자 서명 등록이 실패하였습니다. - " + e.getMessage(), e);
             resultReceiver.send(RESULT_SIGNED_REGISTER_FAIL, null);
-//            sendBroadcastToActivity(CommonBaseInitActivity.EVENT_TYPE_SIGNED_REGISTERED_ERROR, e.getMessage());
             return START_NOT_STICKY; // 서비스가 재시작하지 않음.
         }
-    }
-
-
-    @Deprecated
-    public void sendBroadcastToActivity(int event) {
-        sendBroadcastToActivity(event, "");
-    }
-
-    @Deprecated
-    public void sendBroadcastToActivity(int event, String message) {
-        Intent i = new Intent(CommonBaseInitActivity.ACTION_EVENT);
-        i.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-        i.putExtra(CommonBaseInitActivity.ACTION_EXTRA_TYPE, event);
-        i.putExtra(CommonBaseInitActivity.ACTION_EXTRA_MESSAGE, message);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
     }
 }

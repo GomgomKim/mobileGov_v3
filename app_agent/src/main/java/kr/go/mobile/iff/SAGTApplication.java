@@ -12,6 +12,7 @@ import android.os.IBinder;
 import kr.go.mobile.iff.service.ISessionManagerService;
 import kr.go.mobile.iff.service.SessionManagerService;
 import kr.go.mobile.iff.util.LogUtil;
+import kr.go.mobile.iff.util.Utils;
 
 /**
  * 모바일 전자정부에서 사용하는 보안에이전트 (Security Agent)의 Application 객체.  
@@ -38,6 +39,9 @@ public class SAGTApplication extends Application {
 	@Override
 	public void onCreate() {
 		super.onCreate();
+
+		Utils.TimeStamp.clear();
+		Utils.TimeStamp.startTime("estimate init time");
 		THIS = this;
 		LogUtil.e(getClass(), "보안에이전트 ....");
 		setShutdownMonitor();

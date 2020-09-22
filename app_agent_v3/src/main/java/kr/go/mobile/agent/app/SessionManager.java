@@ -8,10 +8,10 @@ import kr.go.mobile.agent.service.broker.UserAuthentication;
 import kr.go.mobile.agent.service.session.ILocalSessionService;
 import kr.go.mobile.agent.service.session.UserSigned;
 import kr.go.mobile.agent.utils.Log;
+import kr.go.mobile.agent.utils.UserAuthenticationUtils;
 
 public class SessionManager {
 
-    private static final String TAG = SessionManager.class.getSimpleName();
     private static  SessionManager mInstance;
 
     static SessionManager create(IBinder service) {
@@ -26,55 +26,71 @@ public class SessionManager {
     private ILocalSessionService session;
 
     public SessionManager(ILocalSessionService service) {
-        Log.concurrency(Thread.currentThread(), "new SessionManager");
         this.session = service;
     }
 
-    public void validSignedSession() throws SessionException {
-        try {
-            Log.concurrency(Thread.currentThread(), "SessionManager.validSignedSession");
-            session.validSignedSession();
-        } catch (UserSigned.ExpiredException e) {
-            throw new SessionException(SessionException.EXPIRED_SIGNED_SESSION, "서명 세션이 만료되었습니다. 다시 인증서 로그인이 필요합니다.");
-        } catch (NullPointerException e) {
-            throw new SessionException(SessionException.NO_SIGNED_SESSION, "서명 세션 정보가 없습니다.");
-        }
+    public void registerSigned(UserSigned signed) {
+        session.registerSigned(signed);
     }
 
-    public void registerAuthSession(UserAuthentication authentication) throws SessionException {
-        String signedDN = session.getUserDN();
-        String authDN = authentication.userDN;
-        if (Objects.equals(signedDN, authDN)) {
-            Log.concurrency(Thread.currentThread(), "SessionManager.registerAuthSession");
-            session.registerAuthentication(authentication);
-        } else {
-            throw new SessionException(SessionException.AUTH_MISMATCH_USER_DN, "사용자 정보가 변경되었습니다.");
-        }
+    public void registerAuthSession(UserAuthentication authentication) {
+        session.registerAuthentication(authentication);
     }
 
     public UserSigned getUserSigned() {
-        Log.concurrency(Thread.currentThread(), "SessionManager.getUserSigned");
         return session.getUserSigned();
     }
 
     public String getUserDN() {
-        Log.concurrency(Thread.currentThread(), "SessionManager.getUserDN");
-        return this.session.getUserDN();
+        return session.getUserDN();
     }
 
     public String getUserId() throws NullPointerException {
-        Log.concurrency(Thread.currentThread(), "SessionManager.getUserId");
-        return this.session.getUserID();
+        return session.getUserID();
     }
 
     public UserAuthentication getUserAuthentication() {
-        return this.session.getUserAuthentication();
+        return session.getUserAuthentication();
     }
+
+    public void validSignedSession() throws SessionException {
+        try {
+            UserSigned signed = session.getUserSigned();
+            signed.validSession();
+        } catch (UserSigned.ExpiredException e) {
+            throw new SessionException(SessionException.EXPIRED_SIGNED_SESSION, "서명 세션이 만료되었습니다.");
+        } catch (NullPointerException e) {
+            throw new SessionException(SessionException.NO_SIGNED_SESSION, "서명 세션이 존재하지 않습니다.");
+        }
+    }
+
+    public void validSession() throws SessionException {
+        UserAuthentication authentication = session.getUserAuthentication();
+        if (authentication == null) {
+            throw new SessionException(SessionException.AUTH_NO_SESSION, "사용자 인증 정보가 존재하지 않습니다.");
+        }
+        try {
+            UserAuthenticationUtils.confirm(authentication);
+        } catch (UserAuthenticationUtils.InvalidatedAuthException e) {
+            throw new SessionException(SessionException.AUTH_FAILED, "사용자 인증이 실패하였습니다. - "  +e.getMessage());
+        }
+        if (!Objects.equals(authentication.getUserDN(), getUserDN())) {
+            throw new SessionException(SessionException.AUTH_MISMATCH_USER_DN, "사용자 정보가 변경되어 다시 로그인이 필요합니다.");
+        }
+    }
+
+    public void finishLoginActivity() {
+        session.getUserSigned().finishLoginActivity();
+    }
+
+
+
 
     public static class SessionException extends Exception {
 
         public static final int AUTH_NO_SESSION = 200;
         public static final int AUTH_MISMATCH_USER_DN = 201;
+        public static final int AUTH_FAILED = 202;
 
         public static final int NO_SIGNED_SESSION = 300;
         public static final int EXPIRED_SIGNED_SESSION = 301;

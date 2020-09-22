@@ -8,7 +8,7 @@
 	<integer name="SecuwaySSLVersion">1</integer> <!-- vpn 서버 장비가 SecuwaySSL v3.0 장비이상 1, 그렇지 않으면 0 -->
 	<integer name="VpnConnectRetryCnt">10</integer> <!-- vpn 연결 재시도 카운트 . 망의 속도에 따라 조절 해 주도록 하자.. -->
 	<integer name="VpnConnectRetryDelay">8000</integer> <!-- vpn 연결 재시도 딜레이 . 망의 속도에 따라 조절 해 주도록 하자.. -->
-	<integer name="OVERTIME_SECOND_SECURE_NETWORK">1800</integer> <!-- vpn idle time (default: 1800): 30min -->
+	<integer name="OVERTIME_SECOND_SECURE_NETWORK">30</integer> <!-- vpn idle time (default: 1800): 30min -->
 	<string name="MagicMRSIP">125.60.21.148</string> <!-- 인증서 이동을 위한 기본 설정 정보 -->
 	<string name="MagicMRSIPIntra">125.60.21.135</string> <!-- 인트라넷(내부망) 서버 정보 -->
 	<string name="MagicMRSAppId">GPKIAPP</string>

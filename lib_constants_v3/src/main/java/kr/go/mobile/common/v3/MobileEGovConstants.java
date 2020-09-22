@@ -64,6 +64,10 @@ public class MobileEGovConstants {
      * 공통기반 보안 솔루션 연계 실패
      */
     public static final int RESULT_AGENT_SOLUTION_ERROR = 49005;
+    /**
+     * 인증 실패
+     */
+    public static final int RESULT_AGENT_FAILURE_USER_AUTHENTICATION = 49005;
 
     public static final String EXTRA_KEY_USER_ID = "extra_user_id";
     public static final String EXTRA_KEY_DN = "extra_dn";

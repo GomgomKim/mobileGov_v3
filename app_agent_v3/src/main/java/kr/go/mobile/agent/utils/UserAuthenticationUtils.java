@@ -110,7 +110,7 @@ public class UserAuthenticationUtils {
                 certStateValue = Integer.parseInt(auth.verifyStateCert);
                 ldapStateValue = Integer.parseInt(auth.verifyStateLDAP);
             }catch(NullPointerException | NumberFormatException e){
-                e.printStackTrace();
+                //e.printStackTrace();
             }
 
             if (certStateValue < AUTH_STATE_SUCCESS

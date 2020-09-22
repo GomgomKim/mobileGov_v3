@@ -26,18 +26,17 @@ public class EverSafeSolution extends Solution<Void, String> {
     AtomicInteger status;
     int errorCode;
     String agentToken;
-    EversafeHelper.GetVerificationTokenTask task = null;
+    EversafeHelper.GetVerificationTokenTask task;
 
-    public EverSafeSolution(EventListener<String> listener) {
-        super(listener);
+    public EverSafeSolution(Context context) {
+        super(context);
     }
 
     @Override
-    protected void prepare(Context context, Void in) {
-        super.prepare(context, in);
-
+    protected void prepare(Context context) {
+        super.prepare(context);
         Log.d(TAG, "STEP 1. EverSafe 초기화합니다.");
-        status = new AtomicInteger(STATUS_WAIT);
+
         EversafeHelper.getInstance().setBackgroundMaintenanceSec(600);
         EversafeHelper.getInstance().initialize(context.getString(R.string.msmurl));
 
@@ -69,24 +68,21 @@ public class EverSafeSolution extends Solution<Void, String> {
                 status.getAndSet(STATUS_FINISH);
             }
         }.setTimeout(60000);
-        Log.d(TAG, "STEP 2. EverSafe 실행 합니다.");
-        task.execute();
     }
 
     @Override
-    protected Result<String> execute(Context context) {
+    protected Result<String> execute(Context context, Void v) {
+        Log.d(TAG, "STEP 2. EverSafe 실행 합니다.");
+        status = new AtomicInteger(STATUS_WAIT);
+        task.execute();
 
         // AsyncTask 종료까지 대기 및 리턴값 획득
-        Result<String> ret = new Result<>(RESULT_CODE._CANCEL, "");
-
+        Result<String> ret;
         try {
-            // resultMessage 는 ok, invalid, fail, cancelled, timeout 중 하나
-            task.get(1, TimeUnit.MINUTES);
             Log.d(TAG, "STEP 3. EverSafe 실행 응답을 기다립니다.");
             do {
 
             } while (status.compareAndSet(STATUS_WAIT, STATUS_WAIT));
-
 
             Log.d(TAG, "STEP 4. EverSafe 실행 결과를 처리합니다. ");
             switch (errorCode) {
@@ -112,19 +108,9 @@ public class EverSafeSolution extends Solution<Void, String> {
                 default:
                     throw new IllegalStateException("Unexpected value: " + errorCode);
             }
-        } catch (TimeoutException e) {
-            ret.code = RESULT_CODE._TIMEOUT;
-            ret.errorMessage = e.getMessage();
         } catch (Exception e) {
-            ret.code = RESULT_CODE._INVALID;
-            ret.errorMessage = e.getMessage();
+            ret = new Result<>(RESULT_CODE._INVALID, e.getMessage());
         }
-        
         return ret; // --> onCompleted() 호출
-    }
-
-    @Override
-    protected Integer[] getRequestCodes() {
-        return new Integer[0];
     }
 }

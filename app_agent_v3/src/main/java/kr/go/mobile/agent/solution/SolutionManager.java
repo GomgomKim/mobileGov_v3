@@ -28,15 +28,15 @@ public class SolutionManager {
         throw new ModuleNotFoundException(name);
     }
 
-    public static synchronized Solution<?, ?> initSolutionModule(String name, Solution.EventListener<?> eventListener) throws ModuleNotFoundException {
+    public static synchronized Solution<?, ?> initSolutionModule(Context context, String name) throws ModuleNotFoundException {
         try {
             return getSolutionModule(name);
         } catch (ModuleNotFoundException e1) {
             try {
                 Class<?> solutionClass = Class.forName(name);
-                Class<?>[] paramsTypes = {Solution.EventListener.class};
+                Class<?>[] paramsTypes = {Context.class};
                 Constructor<?> constructor = solutionClass.getConstructor(paramsTypes);
-                Solution<?, ?> ret = (Solution<?, ?>) constructor.newInstance(eventListener);
+                Solution<?, ?> ret = (Solution<?, ?>) constructor.newInstance(context);
                 managerMap.put(name, ret);
                 return ret;
             } catch (Exception e) {
@@ -89,7 +89,7 @@ public class SolutionManager {
             String name = getMessage();
             if (name.contains(".")) {
                 int lastIndex = name.lastIndexOf(".");
-                name = name.substring(lastIndex);
+                name = name.substring(lastIndex+1);
             }
             return name;
         }

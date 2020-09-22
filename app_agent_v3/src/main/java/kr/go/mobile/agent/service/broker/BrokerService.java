@@ -37,12 +37,9 @@ public class BrokerService extends Service {
     private final static String TAG = BrokerService.class.getSimpleName();
 
     public interface IServiceManager {
-        public SessionManager getSessionManager();
-        public MonitorManager getMonitorManager();
+        SessionManager getSessionManager();
+        MonitorManager getMonitorManager();
     }
-
-    public static final int RESULT_AUTHENTICATION_OK = 1000;
-    public static final int RESULT_AUTHENTICATION_FAIL = 1001;
 
     final BlockingQueue<BrokerTask> queueBrokerTask = new ArrayBlockingQueue<>(20);
 
@@ -58,7 +55,6 @@ public class BrokerService extends Service {
 
         @Override
         public BrokerResponse execute(BrokerTask task) throws RemoteException {
-
             return null;
         }
 
@@ -73,15 +69,33 @@ public class BrokerService extends Service {
     };
 
     IServiceManager serviceManager;
+    GenerateHeaders generateHeaders;
+    RelayClient client;
 
     @Override
     public void onCreate() {
         Application app = getApplication();
         if (app instanceof SAGTApplication) {
             serviceManager = (IServiceManager) app;
+            generateHeaders = new GenerateHeaders(this);
+
         } else {
-            throw new RuntimeException("보안 에이전트의 서비스 매니저를 로드할 수 없습니다.");
+            throw new IllegalStateException("보안 에이전트의 서비스 매니저를 로드할 수 없습니다.");
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        serviceManager = null;
+    }
+
+    public SessionManager getSession() {
+        return serviceManager.getSessionManager();
+    }
+
+    public MonitorManager getMonitor() {
+        return serviceManager.getMonitorManager();
     }
 
     @Nullable
@@ -92,95 +106,68 @@ public class BrokerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flag, int startId) {
-        final ResultReceiver resultReceiver = intent.getParcelableExtra("extra_receiver");
-        final UserSigned signed = intent.getParcelableExtra("auth_data");
-
-        if (resultReceiver == null || signed == null) {
-            throw new IllegalStateException("BrokerService 를 실행할 수 없습니다.");
-        }
-
-        String baseURL = new Aria(BrokerService.this.getString(R.string.MagicMRSLicense))
-                .decrypt(BrokerService.this.getString(R.string.agenturl))
+        kr.go.mobile.agent.utils.Log.timeStamp("startCert");
+        UserSigned signed = getSession().getUserSigned();
+        int nConnectTimeOut = getResources().getInteger(R.integer.HttpConnectionTimeOut);
+        int nReadTimeOut = getResources().getInteger(R.integer.HttpReadTimeOut);
+        String baseURL = new Aria(getString(R.string.MagicMRSLicense))
+                .decrypt(getString(R.string.agenturl))
                 +"/";
 
-        /*
-        헤더 제작
-         */
-        final GenerateHeaders generateHeaders = new GenerateHeaders(this);
-        generateHeaders.setContentType("application/json;charset=utf-8");
         try {
-            generateHeaders.setAgentDetail(signed.getUserID(), signed.getOfficeName(), signed.getOfficeCode());
             URL url = new URL(baseURL);
+            client = new RelayClient(baseURL);
+            client.setOkHttpClient(nConnectTimeOut, nReadTimeOut);
+            client.buildClient();
+
             generateHeaders.setUrl(url);
+            generateHeaders.setAgentDetail(signed.getUserID(), signed.getOfficeName(), signed.getOfficeCode());
+
         } catch (UnsupportedEncodingException | PackageManager.NameNotFoundException | MalformedURLException e) {
-            // TODO
+            // TODO 에러 코드 정의..
             e.printStackTrace();
         }
-
-        /*
-        클라이언트의 기본 설정 하기
-        url, 타임아웃설정
-         */
-        final int nConnectTimeOut = this.getResources().getInteger(R.integer.HttpConnectionTimeOut);
-        final int nReadTimeOut = this.getResources().getInteger(R.integer.HttpReadTimeOut);
-
-        Log.d(TAG, "baseURL : " + baseURL);
-        final RelayClient client = new RelayClient(baseURL);
-        client.setOkHttpClient(nConnectTimeOut, nReadTimeOut);
-        client.buildClient();
 
         new Thread(new Runnable() {
             @Override
             public void run() {
-                // TODO BrokerTask 객체 정보를 이용하여 retrofit 으로 구현된 RelayClient 로 요청 및 응답 콜백
-                while (true) {
+                do {
                     try {
                         BrokerTask task = queueBrokerTask.take();
 
-                        // BrokerTask 객체의 serviceId 를 이용하여 클라이언트 header 값 세팅
-                        // BrokerTask 객체의 serviceParams 은 body 값으로 사용
-                        // 클라이언트 요청에 대한 응답은 serviceCallback 함수를 이용하여 리턴.
-                        generateHeaders.setServiceId(task.getServiceId());
+                        if (getMonitor().enabledSecureNetwork()) {
+                            String serviceId = task.getServiceId();
+                            String serviceParams = task.getServiceParam();
 
-                        Log.d(TAG, "serviceID : " + task.getServiceId());
+                            Log.d(TAG, "serviceID : " + serviceId);
+                            Log.d(TAG, "serviceParams : " +  serviceParams);
 
-                        if (task.serviceId.equals(BrokerTask.SERVICE_ID_CERT_AUTH)) {
+                            generateHeaders.setServiceId(task.getServiceId());
+                            generateHeaders.setContentLength(serviceParams.length());
 
-                            // Retrofit 통신
-                            String body = task.serviceParam;
-                            Log.d(TAG, "task body : " + body);
-                            body = URLEncoder.encode(body, "UTF-8");
-                            generateHeaders.setContentLength(body.length());
-                            Map<String, String> headers = generateHeaders.getHeaders();
-                            Log.d(TAG, "task body : " + body);
-
-                            client.relayUserAuth(task.serviceCallback, headers, body);
-
+                            if (task.serviceId.equals(BrokerTask.SERVICE_ID_CERT_AUTH)) {
+                                generateHeaders.setContentType("application/json;charset=utf-8");
+                                Map<String, String> headers = generateHeaders.getHeaders();
+                                try {
+                                    client.relayUserAuth(task.serviceCallback, headers, URLEncoder.encode(serviceParams, "UTF-8"));
+                                } catch (UnsupportedEncodingException e) {
+                                    // TODO 에러코드값 정의 필요
+                                    task.serviceCallback.onFailure(0, "사용자 인증 요청을 할 수 없는 단말 환경입니다. (인코딩 미지원)");
+                                    Log.e(TAG, "사용자 인증 요청을 할 수 없는 단말 환경입니다. (인코딩 미지원)" , e);
+                                }
+                            } else {
+                                Log.i(TAG, "행정 서비스 ID : " + task.serviceId);
+                                generateHeaders.setContentType("application/x-www-form-urlencoded; charset=UTF-8");
+                                Map<String, String> headers = generateHeaders.getHeaders();
+                                client.relayReqData(task.serviceCallback, headers, serviceParams);
+                            }
                         } else {
-                            Log.i(TAG, "행정 서비스 ID : " + task.serviceId);
-                            // TODO 중계 서버와 통신, 기존 코드 HttpService.java - line 146, HttpTask.java - line 39
-                            // Retrofit 통신
-                            String body = task.serviceParam;
-                            Log.d(TAG, "task body : " + body);
-
-                            body = URLEncoder.encode(body, "UTF-8");
-                            generateHeaders.setContentLength(body.length());
-
-                            // req data에선 application/x-www-form-urlencoded; charset=utf-8 사용 (default)
-                            generateHeaders.setContentType(null);
-
-                            Map<String, String> headers = generateHeaders.getHeaders();
-                            Log.d(TAG, "task body : " + body);
-
-                            client.relayReqData(task.serviceCallback, headers, body);
-
+                            // TODO 네트워크 오류 코드 정의
+                            task.serviceCallback.onFailure(0, "보안 네크워크 연결되지 않았습니다.");
                         }
-                    } catch (InterruptedException ignored) {
-                    } catch (UnsupportedEncodingException e) {
-                        // TODO
-                        e.printStackTrace();
+                    } catch (InterruptedException | RemoteException ignored) {
                     }
-                }
+                } while (serviceManager != null);
             }
         }, "broker queue").start();
 
@@ -188,34 +175,17 @@ public class BrokerService extends Service {
             Log.d(TAG, "auth-task enqueue");
             String authParams = UserAuthenticationUtils.generateBody(signed.getSignedBase64());
             BrokerTask task = BrokerTask.generateAuthTask(authParams);
-            task.setCallback(new IBrokerServiceCallback() {
+            task.serviceCallback = new IBrokerServiceCallback() {
                 @Override
                 public void onResponse(BrokerResponse response) throws RemoteException {
                     Log.d(TAG, "response code : " + response.code);
                     Log.d(TAG, "response obj : " + response.obj.toString());
-                    switch (response.code) {
-                        case 0: {
-                            // 세션 서비스로 인증 세션 생성(등록)
-                            Bundle bundle = new Bundle();
-
-                            /*
-                            Tom 200914
-                            Json, Gson 별로 분기
-                             */
-                            // Json
-                            bundle.putParcelable("user_auth", (UserAuthentication) response.obj);
-                            // gson
-//                            bundle.putParcelable("user_auth", (UserAuthentication.AuthModel) response.obj);
-
-                            resultReceiver.send(BrokerService.RESULT_AUTHENTICATION_OK, bundle);
-                        }
-                        break;
-                        case 200: {
-                            // TODO 인증 실패 
-                        }
-                        break;
-                        default:
-                            throw new IllegalStateException("Unexpected value: " + response.code);
+                    if (response.code == 0) {// 세션 서비스로 인증 세션 생성(등록)
+                        serviceManager.getSessionManager().registerAuthSession((UserAuthentication) response.obj);
+                    } else if (response.code == 1) {
+                        // TODO 응답 데이터 처리 오류
+                    } else {
+                        throw new IllegalStateException("Unexpected value: " + response.code);
                     }
                 }
 
@@ -228,7 +198,7 @@ public class BrokerService extends Service {
                 public IBinder asBinder() {
                     return null;
                 }
-            });
+            };
             queueBrokerTask.offer(task);
         } catch (JSONException e) {
             // TODO 서비스 실행 실패 처리.. 인증 실패...

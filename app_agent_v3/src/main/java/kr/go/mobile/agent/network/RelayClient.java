@@ -1,7 +1,6 @@
 package kr.go.mobile.agent.network;
 
 import android.os.RemoteException;
-import android.util.Log;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -9,8 +8,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +23,7 @@ import kr.go.mobile.agent.service.broker.ReqData;
 import kr.go.mobile.agent.service.broker.UserAuthentication;
 import kr.go.mobile.agent.service.broker.IBrokerServiceCallback;
 
+import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.agent.utils.ReqDataUtils;
 import kr.go.mobile.agent.utils.UserAuthenticationUtils;
 import okhttp3.MediaType;
@@ -49,7 +47,6 @@ public class RelayClient {
     private final static String TAG = RelayClient.class.getSimpleName();
 
     String baseURL;
-
     Retrofit retrofit;
     OkHttpClient okHttpClient;
 
@@ -140,52 +137,36 @@ public class RelayClient {
     사용자 인증정보 인터페이스 연결
      */
     public void relayUserAuth(final IBrokerServiceCallback callback, Map<String, String> headers, String body){
-
-//        Log.d(TAG, "userAuthRelay : headers - "+headers+" / body - "+body);
+        Log.timeStamp("relayUserAuth");
 
         byte[] byte_body = body.getBytes(StandardCharsets.UTF_8);
-
-//        Log.d(TAG, "byte_body - "+ Arrays.toString(byte_body));
-
         RequestBody req_body = RequestBody.create(MediaType.parse("application/octet-stream"), byte_body);
 
-        /*
-        레트로핏 객체에 관리 인터페이스 연결
-         */
+        // 레트로핏 객체에 관리 인터페이스 연결
         RelayInterface userAuthDataInterface = retrofit.create(RelayInterface.class);
-        /*
-        결과 콜백 부분
-         */
-        SimpleDateFormat mFormat = new SimpleDateFormat("hh:mm:ss.SSS");
-        String curTime = mFormat.format(new Date(System.currentTimeMillis()));
-        Log.d("estimate_time", "Time : start - "+curTime);
 
+        // 결과 콜백 부분
         // using Json
         Call<ResponseBody> call = userAuthDataInterface.getAuthReqData(headers, req_body);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 Log.d(TAG, "enqueue onResponse : call - "+call+" / response - "+response);
-                String message = response.message();
-                Log.d(TAG, "Result Message : " + message);
+                Log.d(TAG, "Result Message : " + response.message());
 
                 BrokerResponse resp;
                 try {
                     String result = response.body().string();
                     UserAuthentication retData = UserAuthenticationUtils.parseUserAuthentication(result);
-                    UserAuthenticationUtils.confirm(retData);
                     resp = new BrokerResponse(0, retData);
-
-                } catch (UserAuthenticationUtils.InvalidatedAuthException e) {
-                    // TODO 에러 코드 분류
-                    resp = new BrokerResponse(0, e.getMessage());
                 } catch (IOException e) {
                     // TODO 에러 코드 분류
                     e.printStackTrace();
-                    resp = new BrokerResponse(0, "응답 데이터를 읽을 수 없습니다.");
+                    resp = new BrokerResponse(1, "응답 데이터를 읽을 수 없습니다.");
                 }
 
                 try {
+                    Log.timeStamp("relayUserAuth");
                     callback.onResponse(resp);
                 } catch (RemoteException e) {
                     // TODO 응답 받는 클라이언트 쪽에서 에러 발생.. 어떻게 처리할까 ?
@@ -253,7 +234,7 @@ public class RelayClient {
    사용자 인증정보 인터페이스 연결
     */
     public void relayReqData(final IBrokerServiceCallback callback, Map<String, String> headers, String body){
-
+        Log.timeStamp("relayReqData");
         Log.d(TAG, "userAuthRelay : headers - "+headers+" / body - "+body);
 
         byte[] byte_body = body.getBytes(StandardCharsets.UTF_8);
@@ -273,17 +254,14 @@ public class RelayClient {
             @Override
             public void onResponse(@NotNull Call<ResponseBody> call, @NotNull Response<ResponseBody> response) {
                 Log.d(TAG, "enqueue onResponse : call - "+call+" / response - "+response);
-                String message = response.message();
-                Log.d(TAG, "Result Message : " + message);
+                Log.d(TAG, "Result Message : " + response.message());
 
                 BrokerResponse resp;
                 try {
                     String result = response.body().string();
-                    Log.d(TAG, "Result Message : " + result);
                     ReqData retData = ReqDataUtils.parseReqData(result);
                     String data = retData.data;
                     // TODO 응답 데이터에따라 parse된 데이터 String으로 묶어주는 작업 필요 - parseReqData해도 될듯
-
                     resp = new BrokerResponse(0, data);
 
                 } catch (IOException e) {

@@ -3,6 +3,9 @@ package kr.go.mobile.agent.service.broker;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
 public class BrokerTask implements Parcelable {
 
     static String SERVICE_ID_CERT_AUTH = "CMM_CERT_AUTH_MAM";
@@ -60,4 +63,7 @@ public class BrokerTask implements Parcelable {
 
     public String getServiceId() { return serviceId; }
 
+    public String getServiceParam() {
+        return serviceParam;
+    }
 }

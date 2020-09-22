@@ -132,7 +132,7 @@ public class SessionManagerService extends Service implements ISessionManagerSer
 				
 				Utils.setEnableVpn(true);
 				
-				// 2016.11.11 VPN 터널링이 완료된 후 인증데이터를 요청해야함. 
+				// 2016.11.11 VPN 터널링이 완료된 후 인증데이터를 요청해야함.
 				reqCertification(mSignedInfo.getSignedBase64(), mReqStartVpn);
 				mReqStartVpn = false;
 			}
@@ -349,7 +349,7 @@ public class SessionManagerService extends Service implements ISessionManagerSer
 			Runnable task = new Runnable() {
 				@Override
 				public void run() {
-					TimeStamp.startTime("reqCert");
+					TimeStamp.startTime("startCert");
 					Utils.TimeStamp.startTime("req_ret_time_test");
 					// 2016.11.14 윤기현 - VPN 터널링 후 사용자 인증을 요청하고 리턴받는 구조를 Listener 구조로 변경. 런처에서만 사용한다. 
 					new HttpManager(SessionManagerService.this).reqCertAuth(
@@ -457,7 +457,7 @@ public class SessionManagerService extends Service implements ISessionManagerSer
 									changedCertStatus(false, "인증이 실패하였습니다.");
 									return;
 								}
-								TimeStamp.endTime("reqCert");
+								TimeStamp.endTime("startCert");
 								
 								String ouName = jsonObj.get("ou").toString();
 								String ouCode = jsonObj.get("oucode").toString();
