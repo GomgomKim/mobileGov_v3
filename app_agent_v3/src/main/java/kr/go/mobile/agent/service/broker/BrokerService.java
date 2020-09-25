@@ -188,23 +188,19 @@ public class BrokerService extends Service {
                         throw new RuntimeException(response.getErrorMessage());
                     }
                 }
-
                 @Override
                 public void onFailure(int failCode, String failMessage) throws RemoteException {
-                    throw new RuntimeException("인증 요청을 할 수 없습니다. (" + failMessage + ")");
+                    throw new RuntimeException(failMessage);
                 }
-
                 @Override
                 public IBinder asBinder() {
                     return null;
                 }
             };
             queueBrokerTask.offer(task);
-        } catch (JSONException e) {
-            // README : 이건 왜 호출하는거지요 ??
-            // stopService(intent);
+        } catch (JSONException e) { ;
             // README : 여기서 에러가 발생하면 중계 클라이언트 서비스를 제공할 수 없습니다. 즉, 앱이 종료되어야 합니다.
-            throw new RuntimeException("인증 요청 데이터를 생성할 수 없습니다.", e);
+            throw new RuntimeException(""+R.string.broker_error_porc_data + e);
         }
         return START_STICKY;
     }

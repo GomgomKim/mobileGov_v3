@@ -42,36 +42,6 @@ public class UserAuthenticationUtils {
         return reqMethodCall.toString();
     }
 
-    /**
-       Tom 200914
-       Return data Json parsing
-    */
-    public static UserAuthentication parseUserAuthentication(final String resp) throws JSONException {
-        UserAuthentication auth = new UserAuthentication();
-        //try {
-            JSONObject response = new JSONObject(new JSONObject(resp).getString("methodResponse"));
-            auth.result = response.getString("result");
-
-            JSONObject jsonData = new JSONObject(response.getString("data"));
-            auth.verifyState = jsonData.get("verifyState").toString();
-            auth.verifyStateCert = jsonData.get("verifyStateCert").toString();
-            auth.verifyStateLDAP = jsonData.get("verifyStateLDAP").toString();
-            auth.userID = jsonData.get("cn").toString();
-            auth.userDN = jsonData.get("dn").toString();
-            auth.ouName = jsonData.get("ou").toString();
-            auth.ouCode = jsonData.get("oucode").toString();
-            auth.departmentName = jsonData.get("companyName").toString();
-            auth.departmentCode = jsonData.get("topOuCode").toString();
-            auth.nickName = jsonData.get("displayName").toString();
-            auth.code = response.getString("code");
-            auth.msg = response.getString("msg");
-        //} catch (JSONException e) {
-            // README 여기서 예외사항을 처리하지 않고 .. 넘기면 ?? 다음에는 어떻게 될까요 ?
-            // e.printStackTrace();
-        //}
-        return auth;
-    }
-
     static final int AUTH_STATE_ELSE = 9;
     static final int AUTH_STATE_SUCCESS = 0;
 

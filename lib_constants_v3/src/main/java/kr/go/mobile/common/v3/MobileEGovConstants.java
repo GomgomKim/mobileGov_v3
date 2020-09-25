@@ -87,16 +87,24 @@ public class MobileEGovConstants {
      * 보안 네트워크 미연결 상태
      */
     public static final int BROKER_ERROR_SECURE_NETWORK_DISCONNECTION = 1004;
-
     /**
      * 브로커 서비스 처리  - 정상
      */
-    public static final int BROKER_ERROR_NONE = 1009;
+    public static final int BROKER_ERROR_NONE = 1000;
     /**
-     * 브로커 서비스 처리 결과 읽기 에러
+     * 브로커 서비스 데이터 처리 에러
      */
-    public static final int BROKER_ERROR_READ = 1009;
-
+    public static final int BROKER_ERROR_PROC_DATA = 1001;
+    /**
+     * 브로커 서비스 행정 서버 에러
+     * HTTP 응답 에러
+     */
+    public static final int BROKER_ERROR_CONNECT_HTTP = 1002;
+    /**
+     * 브로커 서비스 공통기반 시스템 에러
+     * result 값이 1로 오지 않을 경우
+     */
+    public static final int BROKER_ERROR_RESP_COMMON_DATA  = 1003;
 
 
 }

@@ -30,6 +30,10 @@
     <string name="screen_saver_password_info2">30분 이상 미 사용시 필요한 화면보호 비밀번호를 설정합니다.\n</string>
     <string name="loading_secure_network_msg">보안 네트워크 연결로 5~7초 정도 소요됩니다.</string>
 
+    <!-- broker error -->
+    <string name="broker_error_porc_data">데이터 요청에 대한 응답데이터 처리 중 에러가 발생하였습니다.</string>
+    <string name="broker_error_connect_http">서버 응답 에러가 발생했습니다. 행정서버에 문의하세요.</string>
+    <string name="broker_error_resp_common_data">공통기반 시스템 에러입니다. 행정기관에 문의하세요.</string>
 
 
 </resources>

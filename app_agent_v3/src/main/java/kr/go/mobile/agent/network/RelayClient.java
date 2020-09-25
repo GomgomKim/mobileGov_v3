@@ -25,9 +25,10 @@ import kr.go.mobile.agent.service.broker.UserAuthentication;
 import kr.go.mobile.agent.service.broker.IBrokerServiceCallback;
 
 import kr.go.mobile.agent.utils.Log;
-import kr.go.mobile.agent.utils.ReqDataUtils;
+import kr.go.mobile.agent.utils.RsepDataUtils;
 import kr.go.mobile.agent.utils.UserAuthenticationUtils;
 import kr.go.mobile.common.v3.MobileEGovConstants;
+import kr.go.mobile.mobp.iff.R;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -156,21 +157,29 @@ public class RelayClient {
                 Log.d(TAG, "enqueue onResponse : call - "+call+" / response - "+response);
                 Log.d(TAG, "Result Message : " + response.message());
 
-                BrokerResponse<UserAuthentication> resp;
-                try {
-                    String result = response.body().string();
-                    UserAuthentication retData = UserAuthenticationUtils.parseUserAuthentication(result);
-                    resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_NONE, retData);
-                } catch (IOException | JSONException e) {
-                    Log.e(TAG, "사용자 인증 응답데이터 처리중 에러가 발생하였습니다. (" + e.getMessage() + ")", e);
-                    // RESULT_OK 가 아닌 값 아무거나  ~
-                    resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_READ,
-                            "사용자 인증 응답데이터 처리중 에러가 발생하였습니다. (" + e.getMessage() + ")", null);
-                }
+                if(response.isSuccessful()) { // http code : 2xx 통신 성공
+                    BrokerResponse<UserAuthentication> resp;
+                    try {
+                        String result = response.body().string();
+                        UserAuthentication respData = RsepDataUtils.parseUserAuthentication(result);
+                        resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_NONE, respData);
+                    } catch (IOException | JSONException e) {
+                        Log.e(TAG, R.string.broker_error_porc_data + "(" + e.getMessage() + ")", e);
+                        resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_PROC_DATA,
+                                R.string.broker_error_porc_data +  "(" + e.getMessage() + ")", null);
+                    }
 
-                try {
-                    callback.onResponse(resp);
-                } catch (RemoteException ignored) {
+                    try {
+                        callback.onResponse(resp);
+                    } catch (RemoteException ignored) {
+                    }
+
+                } else { // http 통신 실패
+                    Log.e(TAG, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                    try {
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_CONNECT_HTTP, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                    } catch (RemoteException ignored) {
+                    }
                 }
             }
 
@@ -178,10 +187,16 @@ public class RelayClient {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 Log.d(TAG, "enqueue onFailure : code - "+call+" / msg - "+t);
                 try {
-                    // README : throwable 타입에 따른 분류가 필요할꺼 같아요..
-                    // 어떤 Throwable 들이 올 수 있는지 확인 해주세요 !
-                    // 객체 타입에 따른 code 값 정의가 필요하고 관련 내용에 대한 설명 문자열 필요해요
-                    callback.onFailure(-1, "라이브러리 오류");
+                    // retrofit, okhttp, adapter, converter 중에서 에러가 난 상황
+                    if(t instanceof IOException){
+                        // 네트워크 오류 - header, body 형식이 맞지 않거나 통신이 불가능한 상황(WIFI미접속 등)
+                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                    } else {
+                        // 그 외 converter, baseurl, SSL등을 잘못 설정한 경우
+                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                    }
                 } catch (RemoteException ignored) {
                 }
             }
@@ -249,7 +264,6 @@ public class RelayClient {
         /*
         결과 콜백 부분
          */
-
         Call<ResponseBody> call = reqDataInterface.getReqData(headers, req_body);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
@@ -257,34 +271,41 @@ public class RelayClient {
                 Log.d(TAG, "enqueue onResponse : call - "+call+" / response - "+response);
                 Log.d(TAG, "Result Message : " + response.message());
 
-                BrokerResponse<String>resp;
-                try {
-                    String result = response.body().string();
-                    // README ReqData -> RespData
-                    // README 중계 클라이언트 응답데이터를 파싱하는 util 을 하나로 만드는건 어떨까요 ?
-                    RespData retData = ReqDataUtils.parseReqData(result);
-                    // README result 값에 따른 처리는 안해요 ?? 이 같이 따라서 에러코드로 나눠질텐데 ?
-                    /*
-                    switch (retData.result) {
-                        case "0":
-                            break;
+                if(response.isSuccessful()) {
+                    // http code : 2xx 통신 성공
+                    BrokerResponse<String>resp;
+                    try {
+                        String result = response.body().string();
+                        RespData respData = RsepDataUtils.parseReqData(result);
+                        if (respData.result.equals("1")) {
+                            // 데이터가 정상적으로 수신된 경우
+                            String data = RsepDataUtils.makeRespData(respData);
+                            resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_NONE, data);
+                        } else {
+                            // 행정기관에서 정상적인 데이터가 아닌 오류메세지를 보낼 경우
+                            Log.e(TAG, R.string.broker_error_resp_common_data + "(result: " + respData.result + ", code: "+ respData.code +")");
+                            resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_RESP_COMMON_DATA ,
+                                    R.string.broker_error_resp_common_data + "(result: " + respData.result + ", code: "+ respData.code +")", null);
+                        }
+                    } catch (IOException | JSONException e) {
+                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + e.getMessage() + ")", e);
+                        resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + e.getMessage() + ")", null);
                     }
-                     */
-                    String data = retData.data;
-                    // TODO 응답 데이터에따라 parse된 데이터 String으로 묶어주는 작업 필요 - parseReqData해도 될듯
-                    resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_NONE, data);
 
-                } catch (IOException | JSONException e) {
-                    Log.e(TAG, "(서비스 ID) 데이터 요청에 대한 응답데이터 처리중 에러가 발생하였습니다. (" + e.getMessage() + ")", e);
-                    resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_READ, "응답 데이터를 읽을 수 없습니다.", null);
+                    try {
+                        callback.onResponse(resp);
+                    } catch (RemoteException e) {
+                        //TODO 이부분은 개발자가 정의한 onFailure 에서 데이터를 처리하다가 RemoteException 을 줘야지 받을 수 있는 부분인데
+                        //만약, 개발자가 응답 데이터를 받았는데 에러가 발생해서 RemoteException 을 준다고하면, 에이전트에서는 어떻게 처리해야할까요 ?
+                    }
                 }
-
-
-                try {
-                    callback.onResponse(resp);
-                } catch (RemoteException e) {
-                    //TODO 이부분은 개발자가 정의한 onFailure 에서 데이터를 처리하다가 RemoteException 을 줘야지 받을 수 있는 부분인데
-                    //만약, 개발자가 응답 데이터를 받았는데 에러가 발생해서 RemoteException 을 준다고하면, 에이전트에서는 어떻게 처리해야할까요 ?
+                else {
+                    // http 통신 실패
+                    Log.e(TAG, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                    try {
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_CONNECT_HTTP, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                    } catch (RemoteException ignored) {
+                    }
                 }
             }
 
@@ -292,11 +313,18 @@ public class RelayClient {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 Log.e(TAG, "서비스 ID를 이용한 데이터 요청 실패  : call - "+call, t);
                 try {
-                    // README : throwable 타입에 따른 분류가 필요할꺼 같아요..
-                    // 어떤 Throwable 들이 올 수 있는지 확인 해주세요 !
-                    // 객체 타입에 따른 code 값 정의가 필요하고 관련 내용에 대한 설명 문자열 필요해요
-                    callback.onFailure(-1, "라이브러리 오류");
-                } catch (RemoteException e) {
+                    // retrofit, okhttp, adapter, converter 중에서 에러가 난 상황
+                    if(t instanceof IOException){
+                        // 네트워크 오류 - header, body 형식이 맞지 않거나 통신이 불가능한 상황(WIFI미접속 등)
+                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                    } else {
+                        // 그 외 converter, baseurl, SSL등을 잘못 설정한 경우
+                        // TODO 상수를 추가하거나 별도의 에러 처리 작업이 필요할듯 합니다.
+                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                    }
+                } catch (RemoteException ignore) {
                     // TODO 이부분은 개발자가 정의한 onFailure 에서 데이터를 처리하다가 RemoteException 을 줘야지 받을 수 있는 부분인데...
                     // 만약, 개발자가 응답 데이터를 받았는데 에러가 발생해서 RemoteException 을 준다고하면, 에이전트에서는 어떻게 처리해야할까요 ?
                 }
