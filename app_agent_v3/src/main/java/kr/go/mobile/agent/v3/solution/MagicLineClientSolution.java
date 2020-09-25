@@ -30,18 +30,12 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
 
     public MagicLineClientSolution(Context context) {
         super(context);
-    }
-
-    @Override
-    protected void prepare(Context context) {
-        super.prepare(context);
-
-        Log.d(TAG, "STEP 1. 초기화");
+        Log.d(TAG, "초기화");
         try {
             magicLine = MagicLine.getIntance(context,
-                        context.getString(R.string.MagicMRSLicense),
-                        MagicLineType.VALUE_CERTDOMAIN_GPKI | MagicLineType.VALUE_CERTDOMAIN_EPKI,
-                        MagicLineType.VALUE_KEYSECURITY_NFILTER );
+                    context.getString(R.string.MagicMRSLicense),
+                    MagicLineType.VALUE_CERTDOMAIN_GPKI | MagicLineType.VALUE_CERTDOMAIN_EPKI,
+                    MagicLineType.VALUE_KEYSECURITY_NFILTER );
 
             magicLine.setIntranetCertMove(
                     context.getString(R.string.MagicMRSIPIntra), //MAGICMRS_IP_INTRA,
@@ -50,11 +44,9 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                     context.getString(R.string.import_from_internet),
                     context.getString(R.string.import_from_intra));
         } catch (Exception e) {
-            failedProcess(context, e);
-            e.printStackTrace();
+            throw new SolutionRuntimeException("인증서 로그인 모듈 초기화를 실패하였습니다.", e);
         }
     }
-
 
     private byte[] getSignedData(Context context) throws Exception {
         StringBuilder signedData = new StringBuilder();
@@ -89,13 +81,13 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
     }
 
     private void _showCertList(Context context) throws Exception {
-        Log.i(TAG, "인증서 리스트 화면으로 이동힙니다.");
+        Log.d(TAG, "인증서 리스트 화면으로 이동");
         try {
             // context, 서명데이터, 콜백함수, 패스워드 오류 시도횟수, 횟수 초과 시 삭제여부
             magicLine.signShow(context,
                     getSignedData(context),
                     REQUEST_CODE_CERT_SIGN,
-                    context.getResources().getInteger(R.integer.MagiclineSignWrongPasswordCount),
+                    context.getResources().getInteger(R.integer.MagicSignWrongPasswordCount),
                     true);
         } catch (Exception e) {
             throw new Exception("인증서 목록 화면 호출을 실패하였습니다.", e);
@@ -103,7 +95,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
     }
 
     private void _showCertManager(Context context) throws Exception {
-        Log.i(TAG, "인증서 관리 화면으로 이동힙니다.");
+        Log.d(TAG, "인증서 관리 화면으로 이동");
         try {
             magicLine.certManagerShow(context,
                     context.getString(R.string.MagicMRSIP),
@@ -117,7 +109,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
     }
 
     @Override
-    protected Result<UserSigned> execute(Context context, Void v) {
+    protected Result<UserSigned> process(Context context, Void v) {
         Result<UserSigned> ret = null;
         try {
             _showCertList(context);
@@ -144,8 +136,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                 case REQUEST_CODE_CERT_SIGN: {
                     if (resultCode == Activity.RESULT_OK) {
                         // FIXME 고유 암호값으로 사용할 수 있을까??
-                        Log.e(TAG, "getSigner ::: " + new String(MagicLine.getSignerVIDRandom(intent)));
-                        Log.e(TAG, "getSigner ::: " + Arrays.toString(MagicLine.getSignerVIDRandom(intent)));
+                        Log.v(TAG, "getSigner ::: " + Arrays.toString(MagicLine.getSignerVIDRandom(intent)));
 
                         String subjectDN = MagicLine.getSignerSubjectDN(intent);
                         String signedDataBase64 = MagicLine.getSignedDataBase64(intent);
@@ -153,7 +144,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                         UserSigned signed = new UserSigned(subjectDN, signedDataBase64);
                         Result<UserSigned> result = new Result<>(RESULT_CODE._OK);
                         result.out = signed;
-                        completedProcess(context, result);
+                        setResult(result);
                     } else {
                         int errorCode = MagicLine.getErrorCode(intent);
                         switch (errorCode) {
@@ -163,16 +154,16 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                                 try {
                                     _showCertManager(context);
                                 } catch (Exception t) {
-                                    failedProcess(context, t);
+                                    setResult(new Result<UserSigned>(RESULT_CODE._INVALID, t.getMessage()));
                                 }
                                 break;
                             case MagicLineType.MAGICLINE_SIGN_USER_CANCEL:
                                 // 사용자 취소 -> 앱 종료
-                                completedProcess(context, new Result<UserSigned>(RESULT_CODE._CANCEL, "사용자가 로그인을 취소하였습니다."));
+                                setResult(new Result<UserSigned>(RESULT_CODE._CANCEL, "사용자가 로그인을 취소하였습니다."));
                                 break;
                             default:
                                 // 인증서 모듈 연동 에러 -> 앱 종료
-                                completedProcess(context, new Result<UserSigned>(RESULT_CODE._INVALID, String.format("지원센터에 문의 바랍니다. (errorCode: %d)", errorCode)));
+                                setResult(new Result<UserSigned>(RESULT_CODE._INVALID, String.format("지원센터에 문의 바랍니다. (errorCode: %d)", errorCode)));
                                 break;
                         }
                     }
@@ -183,7 +174,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
             }
             return true;
         } catch (Exception e) {
-            failedProcess(context, e);
+            setResult(new Result<UserSigned>(RESULT_CODE._INVALID, e.getMessage()));
         }
         return super.onActivityResult(context, requestCode, resultCode, intent);
     }

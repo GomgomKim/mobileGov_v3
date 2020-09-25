@@ -1,10 +1,8 @@
 package kr.go.mobile.agent.service.monitor;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,21 +25,22 @@ import kr.go.mobile.mobp.iff.R;
 
 public class MonitorService extends Service {
 
-    static final String TAG = MonitorService.class.getSimpleName();
+    static final String TAG = "SecureMonitor";//MonitorService.class.getSimpleName();
 
-    @Deprecated
-    public static final int RESULT_MALWARE_SCAN_OK = 2000;
-    @Deprecated
-    public static final int RESULT_MALWARE_SCAN_FAIL = 2001;
-    public static final int RESULT_SECURE_NETWORK_OK = 3000;
+    public static final String START_SECURE_NETWORK = "kr.go.mobile.command.START_SECURE_NETWORK";
+    public static final String FORCE_STOP_SECURE_NETWORK = "kr.go.mobile.command.STOP_SECURE_NETWORK";
+    public static final String MONITOR_ADD_ADMIN_PACKAGE = "kr.go.mobile.command.MONITOR_ADD_ADMIN_PACKAGE";
+    public static final String MONITOR_REMOVE_ADMIN_PACKAGE = "kr.go.mobile.command.MONITOR_REMOVE_ADMIN_PACKAGE";
+
+
     public static final int RESULT_SECURE_NETWORK_FAIL = 3001;
     public static final int RESULT_SECURE_NETWORK_IDLE = 3002;
     public static final int RESULT_SECURE_NETWORK_EXPIRED = 3003;
 
     // 보안 네트워크를 overtime 동안 사용하지 않음.
     private static final int MONITOR_SECURE_NETWORK_OVERTIME = 0;
-    // 보안 네트워크를 반복하여 확인
-    private static final int MONITOR_SECURE_NETWORK_REPEAT_CHECK = 1;
+    private static final int MONITOR_SECURE_NETWORK_NO_RUNNING_PACKAGE = 1;
+
 
     private class LocalMonitorServiceBinder extends Binder implements ILocalMonitorService {
 
@@ -51,81 +50,171 @@ public class MonitorService extends Service {
         }
 
         @Override
-        public void registerPackage(Bundle extra) {
-            if (integrityConfirm == null)
-                throw new RuntimeException("!!!!!!!!!!!!!!!!!!!!!!!!!");
+        public void executeSolution(String another) {
+            // 행정앱 토큰 저장
+            integrityConfirm.setAnotherConfirm(another);
+            // 보안 에이전트 무결성 요청
+            integrityConfirm.confirm();
+            // 악성코드 탐지 요청
+            threatDetection.detectedThreats();
+        }
 
-            integrityConfirm.setAnotherConfirm(extra.getString("extra_token", null));
+        @Override
+        public String getErrorMessage(int type) {
+            switch (type) {
+                case 1: // 무결성 에러
+                    return integrityConfirm.getErrorMessage();
+                case 2: // 보안 네트워크 연결 에러
+                    return secureNetwork.getErrorMessage();
+
+            }
+            return null;
         }
 
         @Override
         public ThreatDetection.STATUS getThreatStatus()  {
-            return threatDetection.getStatus();
+            ThreatDetection.STATUS status =  threatDetection.getStatus();
+            if (status != null) {
+                threatDetection.monitor(true);
+            }
+            return status;
         }
 
         @Override
         public String getTokens() {
             return integrityConfirm.getTokens();
         }
+
+        @Override
+        public IntegrityConfirm.STATUS getIntegrityStatus() {
+            return integrityConfirm.status();
+        }
+
+        @Override
+        public void reset() {
+            resetMonitorSecureNetwork(true);
+        }
+
+        @Override
+        public void clear() {
+            integrityConfirm.clear();
+        }
     }
 
-    private ConcurrentMap<String, Long> monitorPackages = new ConcurrentHashMap<>();
+    private ConcurrentMap<String, Bundle> monitorItem = new ConcurrentHashMap<>();
 
     private SecureNetwork secureNetwork;
     private ThreatDetection threatDetection;
     private IntegrityConfirm integrityConfirm;
+    @Deprecated
     private ResultReceiver resultReceiverToApp;
 
-    private Handler idleTimeSecureNetworkHandler = new Handler(Looper.getMainLooper()) {
+    private Handler monitorHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message message) {
             switch (message.what) {
                 case MONITOR_SECURE_NETWORK_OVERTIME:
-                    Log.d(TAG, "보안 네트워크 모니터링 - 대기 시간을 초과했습니다.");
-                    // TODO 보안 네트워크 연결 종료
+                    Log.i(TAG, "보안 네트워크 모니터링 - 대기 시간을 초과했습니다.");
                     stopSecureNetwork();
                     break;
-                case MONITOR_SECURE_NETWORK_REPEAT_CHECK:
-                    Long baseTime = System.currentTimeMillis();
-                    for (String adminPackage : monitorPackages.keySet()) {
-                        Long timeUsed = monitorPackages.get(adminPackage);
-                        // TODO
-//                        if (baseTime - timeUsed > getResources().getInteger(R.integer.OVERTIME_SECOND_SECURE_NETWORK)) {
-//                            monitorPackages.remove(adminPackage);
-//                        }
-                    }
-
-                    if (monitorPackages.isEmpty()) {
-                        // TODO 보안 네트워크 연결 종료
-                        stopSecureNetwork();
-                    } else {
-                        sendEmptyMessageDelayed(MONITOR_SECURE_NETWORK_REPEAT_CHECK, getResources().getInteger(R.integer.REPEAT_CHECK_SECOND_SECURE_NETWORK) * 1000);
-                    }
+                case MONITOR_SECURE_NETWORK_NO_RUNNING_PACKAGE:
+                    Log.i(TAG, "보안 네트워크 모니터링 - 재실행 대기 시간을 초과하였습니다.");
+                    stopSecureNetwork();
                     break;
             }
         }
 
-        void stopSecureNetwork() {
-            secureNetwork.stop(new EventListener<SecureNetwork.STATUS>() {
-                @Override
-                public void onFailure(Context context, String message, Throwable t) {
-
-                }
-
-                @Override
-                public void onCompleted(Context context, Solution.Result<SecureNetwork.STATUS> out) {
-
-                }
-            });
-        }
     };
+
 
     @Override
     public void onCreate() {
         try {
-            secureNetwork = new SecureNetwork(this, SolutionManager.SSL_VPN);
-            integrityConfirm = new IntegrityConfirm(this, SolutionManager.EVER_SAFE);
-            threatDetection = new ThreatDetection(this, SolutionManager.V_GUARD);
+            secureNetwork = new SecureNetwork(this, SolutionManager.SSL_VPN, new EventListener<SecureNetwork.STATUS>() {
+                @Override
+                public void onFailure(Context context, String message, Throwable t) {
+                    // TODO 에러 데이터를 Application.resultReceiver.send
+                }
+
+                @Override
+                public void onCompleted(Context context, Solution.Result<SecureNetwork.STATUS> result) {
+                    switch (result.getCode()) {
+                        case _OK:
+                            Log.i(TAG, "보안 네트워크 연결 - " + result.out);
+                            if (result.out == SecureNetwork.STATUS._CONNECTED) {
+                                monitorSecureNetwork(true);
+                            } else if (result.out == SecureNetwork.STATUS._DISCONNECTED) {
+                                monitorSecureNetwork(false);
+                            }
+                            break;
+                        case _FAIL:
+                            secureNetwork.errorMessage = result.getErrorMessage();
+                            break;
+                        case _CANCEL:
+                            Log.w(TAG, "요청이 취소되었습니다. " + result.getErrorMessage());
+                            break;
+                        case _TIMEOUT:
+                        case _INVALID:
+                        default:
+                            throw new IllegalStateException("Unexpected value: " + result.getCode());
+                    }
+
+                }
+
+
+            });
+            integrityConfirm = new IntegrityConfirm(this, SolutionManager.EVER_SAFE, new EventListener<String>() {
+                @Override
+                public void onFailure(Context context, String message, Throwable t) {
+                    // TODO !!
+                }
+
+                @Override
+                public void onCompleted(Context context, Solution.Result<String> result) {
+                    Log.i(TAG, "무결성 검증 요청 응답 - " + result.getCode() + (result.getErrorMessage().isEmpty() ? "" : ", " +  result.getErrorMessage()));
+                    switch (result.getCode()) {
+                        case _OK:
+                            MonitorService.this.integrityConfirm.setConfirm(result.out);
+                            break;
+                        case _FAIL:
+                        case _INVALID:
+                        case _CANCEL:
+                        case _TIMEOUT:
+                            MonitorService.this.integrityConfirm.setDeny(result.getErrorMessage());
+                            break;
+                        default:
+                            throw new IllegalStateException("무결성 검증 요청에 대한 응답값이 예상하지 않은 값이 전달되었습니다. value = " + result.getCode());
+                    }
+                }
+            });
+            threatDetection = new ThreatDetection(this, SolutionManager.V_GUARD, new EventListener<ThreatDetection.STATUS>() {
+                @Override
+                public void onFailure(Context context, String message, Throwable t) {
+                    integrityConfirm.setConfirm(message);
+                    Log.e(TAG, message, t);
+                }
+
+                @Override
+                public void onCompleted(Context context, Solution.Result<ThreatDetection.STATUS> result) {
+                    switch (result.getCode()) {
+                        case _OK:
+                            Log.i(TAG, "악성코드 탐지 완료 - " + result.out.name());
+                            MonitorService.this.threatDetection.setStatus(result.out);
+                            // TODO 행정앱한테 알려줘야지!!
+                            break;
+                        case _FAIL:
+                        case _INVALID:
+                        case _CANCEL:
+                        case _TIMEOUT:
+                            Log.i(TAG, "악성코드 탐지 실패 - " + result.getErrorMessage());
+                            MonitorService.this.threatDetection.setStatus(ThreatDetection.STATUS._ERROR);
+                            // TODO
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected value: " + result.getCode());
+                    }
+                }
+            });
         } catch (SolutionManager.ModuleNotFoundException e) {
             throw new RuntimeException("보안 솔루션 모듈 로드를 실패하였습니다. (솔루션 : " + e.getNotFoundSolutionSimpleName()  +")", e);
         }
@@ -150,117 +239,66 @@ public class MonitorService extends Service {
         String command = intent.getAction();
         if (command == null) throw new NullPointerException("서비스 커멘드가 존재하지 않습니다.");
         switch (command) {
-            case "kr.go.mobile.command.START_MONITOR":
-                integrityConfirm.confirm(new EventListener<String>() {
-                    @Override
-                    public void onFailure(Context context, String message, Throwable t) {
-                        // TODO !!
-                    }
-
-                    @Override
-                    public void onCompleted(Context context, Solution.Result<String> result) {
-                        Log.i(TAG, " 무결성 검증 요청 응답 - " + result.getCode());
-                        switch (result.getCode()) {
-                            case _OK:
-                                MonitorService.this.integrityConfirm.setConfirm(result.out);
-                                break;
-                            case _FAIL:
-                            case _INVALID:
-                            case _CANCEL:
-                            case _TIMEOUT:
-                                MonitorService.this.integrityConfirm.setDeny(result.getErrorMessage());
-                            default:
-                                throw new IllegalStateException("Unexpected value: " + result.getCode());
-                        }
-                    }
-                });
-                threatDetection.detectedThreats(new EventListener<ThreatDetection.STATUS>() {
-                    @Override
-                    public void onFailure(Context context, String message, Throwable t) {
-                        integrityConfirm.setConfirm(message);
-                        Log.e(TAG, message, t);
-                    }
-
-                    @Override
-                    public void onCompleted(Context context, Solution.Result<ThreatDetection.STATUS> result) {
-                        switch (result.getCode()) {
-                            case _OK:
-                                Log.i(TAG, "악성코드 탐지 완료하였습니다. - " + result.out.name());
-                                MonitorService.this.threatDetection.setStatus(result.out);
-                                break;
-                            case _FAIL:
-                            case _INVALID:
-                            case _CANCEL:
-                            case _TIMEOUT:
-                                Log.i(TAG, "악성코드 탐지에 실패하였습니다 : " + result.getErrorMessage());
-                                MonitorService.this.threatDetection.setStatus(ThreatDetection.STATUS._ERROR);
-                                // TODO
-                                break;
-                            default:
-                                throw new IllegalStateException("Unexpected value: " + result.getCode());
-                        }
-                    }
-                });
-                break;
-            case "kr.go.mobile.command.START_SECURE_NETWORK":
+            case START_SECURE_NETWORK:
                 String userId = intent.getStringExtra("id");
                 String userPw = intent.getStringExtra("pw");
-                secureNetwork.start(userId, userPw, new EventListener<SecureNetwork.STATUS>() {
-                    @Override
-                    public void onFailure(Context context, String message, Throwable t) {
-                        MonitorService.this.secureNetwork.status = null;
-                        // TODO 에러 데이터를 Application.resultReceiver.send
-                    }
-
-                    @Override
-                    public void onCompleted(Context context, Solution.Result<SecureNetwork.STATUS> result) {
-                        switch (result.getCode()) {
-                            case _OK:
-                                MonitorService.this.secureNetwork.status = result.out;
-                                break;
-                            case _FAIL:
-                                // TODO 에러 데이터를 Application.resultReceiver.send
-                            case _CANCEL:
-                            case _TIMEOUT:
-                            case _INVALID:
-                            default:
-                                throw new IllegalStateException("Unexpected value: " + result.getCode());
-                        }
-
-                    }
-                });
+                secureNetwork.start(this, userId, userPw);
                 break;
-            case "kr.go.mobile.command.MONITOR_START_SECURE_NETWORK":
-                monitorSecureNetwork();
+            case FORCE_STOP_SECURE_NETWORK:
+                stopSecureNetwork();
                 break;
-            case "kr.go.mobile.command.MONITOR_START_ADMIN_PACKAGE":
-                // TODO 행정앱의 어플리케이션 클래스 생성시 호출하도록 변경
-                addMonitorAdminPackage(intent.getStringExtra("extra_admin_package"));
+            case MONITOR_ADD_ADMIN_PACKAGE:
+                Bundle extraAdmin = intent.getBundleExtra("admin_info");
+                if (extraAdmin == null) {
+                    throw new RuntimeException("실행되는 행정앱의 정보가 존재하지 않습니다.");
+                }
+                String addId = extraAdmin.getString("req_id_base64");
+                monitorHandler.removeMessages(MONITOR_SECURE_NETWORK_NO_RUNNING_PACKAGE);
+                monitorItem.put(addId, extraAdmin);
+                Log.d(TAG, "모니터링 대상 추가 - " + addId);
                 break;
+            case MONITOR_REMOVE_ADMIN_PACKAGE:
+                String removeId = intent.getStringExtra("req_id_base64");
+                monitorItem.remove(removeId);
+                Log.d(TAG, "모니터링 대상 제거 - " + removeId);
+                if (monitorItem.isEmpty()) {
+                    Log.d(TAG, "재실행 행정앱 대기");
+                    monitorHandler.sendEmptyMessageDelayed(MONITOR_SECURE_NETWORK_NO_RUNNING_PACKAGE, getResources().getInteger(R.integer.SECURE_NETWORK_WAIT_FOR_NO_RUNNING_PACKAGE) * 1000);
+                }
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + command);
         }
+
         return START_NOT_STICKY;
     }
 
-    void monitorSecureNetwork() {
-        Log.d(TAG, "보안 네트워크 모니터링 시작.");
-        idleTimeSecureNetworkHandler.sendEmptyMessageDelayed(MONITOR_SECURE_NETWORK_OVERTIME, getResources().getInteger(R.integer.OVERTIME_SECOND_SECURE_NETWORK) * 1000);
+    private void stopSecureNetwork() {
+        secureNetwork.stop();
     }
 
-    void resetMonitorSecureNetwork() {
-        idleTimeSecureNetworkHandler.removeMessages(MONITOR_SECURE_NETWORK_OVERTIME);
-        idleTimeSecureNetworkHandler.sendEmptyMessageDelayed(MONITOR_SECURE_NETWORK_OVERTIME, getResources().getInteger(R.integer.OVERTIME_SECOND_SECURE_NETWORK) * 1000);
+    private void monitorSecureNetwork(boolean enabled) {
+        if (enabled) {
+            Log.d(TAG, "보안 네트워크 모니터링 시작");
+            secureNetwork.monitor();
+        } else {
+            Log.d(TAG, "보안 네트워크 모니터링 중지");
+            secureNetwork.disabledMonitor();
+            if (!monitorItem.isEmpty()) {
+                // 공통기반 v2.x 호환을 위함.
+                Intent intent = new Intent("kr.go.mobile.ACTION_CONTROL");
+                intent.putExtra("extra_type", 100);
+                sendBroadcast(intent);
+                // TODO 공통기반 3.0 코드 추가
+            }
+        }
+        resetMonitorSecureNetwork(enabled);
     }
 
-    void addMonitorAdminPackage(String adminPackage) {
-        idleTimeSecureNetworkHandler.sendEmptyMessageDelayed(MONITOR_SECURE_NETWORK_REPEAT_CHECK, getResources().getInteger(R.integer.REPEAT_CHECK_SECOND_SECURE_NETWORK) * 1000);
-        monitorPackages.put(adminPackage, System.currentTimeMillis());
-    }
-
-    void updateMonitorAdminPackage(String adminPackage) {
-        monitorPackages.put(adminPackage, System.currentTimeMillis());
-    }
-
-    void removeMonitorAdminPackage(String adminPackage) {
-        monitorPackages.remove(adminPackage);
+    private void resetMonitorSecureNetwork(boolean enabled) {
+        monitorHandler.removeMessages(MONITOR_SECURE_NETWORK_OVERTIME);
+        if (enabled) {
+            monitorHandler.sendEmptyMessageDelayed(MONITOR_SECURE_NETWORK_OVERTIME, getResources().getInteger(R.integer.SECURE_NETWORK_IDLE_OVERTIME_SEC) * 1000);
+        }
     }
 }

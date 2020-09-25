@@ -20,7 +20,7 @@ import java.util.Map;
 public class GenerateHeaders {
 
     Context context;
-    Map<String, String> defaultHeaders = new HashMap<String,String>();
+    Map<String, String> defaultHeaders;
     URL url;
     String serviceId;
     String encodeAgentDetail;
@@ -31,6 +31,7 @@ public class GenerateHeaders {
 
     public GenerateHeaders(Context context){
         this.context = context;
+        this.defaultHeaders = new HashMap<>();
     }
 
     public void setUrl(URL url) {
@@ -129,6 +130,11 @@ public class GenerateHeaders {
                 officeName,
                 android.os.Build.DEVICE));
         return agentDetail.toString();
+    }
+
+    public void clear() {
+        defaultHeaders.clear();
+        defaultHeaders = null;
     }
 
 }

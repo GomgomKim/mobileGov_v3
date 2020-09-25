@@ -10,6 +10,5 @@ public interface ILocalSessionService {
     void registerAuthentication(UserAuthentication authentication);
     UserSigned getUserSigned();
     UserAuthentication getUserAuthentication();
-
-
+    void clear();
 }

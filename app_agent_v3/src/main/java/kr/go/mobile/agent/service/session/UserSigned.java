@@ -1,18 +1,15 @@
 package kr.go.mobile.agent.service.session;
 
 import android.content.Context;
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.util.Log;
 
 import kr.go.mobile.agent.solution.Solution;
 import kr.go.mobile.agent.solution.SolutionManager;
-import kr.go.mobile.agent.v3.solution.MagicLineClientSolution;
-import kr.go.mobile.common.v3.MobileEGovConstants;
 import kr.go.mobile.mobp.iff.R;
 
 public class UserSigned {
     private static final String TAG = UserSigned.class.getSimpleName();
+
 
     public enum STATUS {
         _OK,
@@ -32,7 +29,7 @@ public class UserSigned {
 
     public UserSigned(Context context, String solutionName) throws SolutionManager.ModuleNotFoundException {
         certificationLoginSolution = SolutionManager.initSolutionModule(context, solutionName);
-        this.mAuthMaintainTime = context.getResources().getInteger(R.integer.SignedSessionTimeoutSec) * 1000;
+        this.mAuthMaintainTime = context.getResources().getInteger(R.integer.SIGNED_SESSION_MAINTAIN_SEC) * 1000;
     }
 
     public UserSigned(String dn, String signedBase64) {
@@ -58,23 +55,21 @@ public class UserSigned {
     }
 
     public void startLoginActivityForResult(Context context, Solution.EventListener listener) {
-        certificationLoginSolution.execute(context, true, listener);
-    }
-
-    public void finishLoginActivity() {
-        certificationLoginSolution.finish();
+        certificationLoginSolution.setDefaultEventListener(listener);
+        certificationLoginSolution.execute(context, true);
     }
 
     public void validSession() throws ExpiredException {
-        if (mAuthMaintainTime < 0) {
+        if (mAuthSuccessTime == 0) {
             throw new ExpiredException("등록된 서명값이 없습니다.");
         } else if (mAuthMaintainTime > 0) {
             if ((System.currentTimeMillis() - mAuthSuccessTime) > mAuthMaintainTime) {
+                clear();
                 throw new ExpiredException("서명 유효 시간을 초과했습니다.");
             } else {
                 Log.d(TAG, "유지시간: " + mAuthMaintainTime + " 경과시간: " + (System.currentTimeMillis() - mAuthSuccessTime));
             }
-        } // else { /* 0 값은 무한대로 유지함. */ }
+        } // else { /* mAuthMaintainTime = 0 값은 무한대로 유지함. */ }
     }
 
     public String getSignedBase64() {
@@ -105,6 +100,7 @@ public class UserSigned {
             this.mOfficeName = signed.mOfficeName;
             this.mUserDN = signed.mUserDN;
             this.mUserID = signed.mUserID;
+            signed.clear();
         } else {
             throw new RuntimeException("UserSigned 타입이 서명 값만 존재해야 합니다.");
         }
@@ -114,7 +110,14 @@ public class UserSigned {
         return certificationLoginSolution == null;
     }
 
-
+    public void clear() {
+        mAuthSuccessTime = 0L;
+        mUserDN = null;
+        mSignedBase64 = null;
+        mUserID = null;
+        mOfficeCode = null;
+        mOfficeName = null;
+    }
 
     public static class ExpiredException extends Throwable {
         public ExpiredException(String message) {

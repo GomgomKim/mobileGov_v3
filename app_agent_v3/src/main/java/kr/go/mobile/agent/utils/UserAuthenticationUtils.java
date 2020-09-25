@@ -46,9 +46,9 @@ public class UserAuthenticationUtils {
        Tom 200914
        Return data Json parsing
     */
-    public static UserAuthentication parseUserAuthentication(final String resp) {
+    public static UserAuthentication parseUserAuthentication(final String resp) throws JSONException {
         UserAuthentication auth = new UserAuthentication();
-        try {
+        //try {
             JSONObject response = new JSONObject(new JSONObject(resp).getString("methodResponse"));
             auth.result = response.getString("result");
 
@@ -65,9 +65,10 @@ public class UserAuthenticationUtils {
             auth.nickName = jsonData.get("displayName").toString();
             auth.code = response.getString("code");
             auth.msg = response.getString("msg");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        //} catch (JSONException e) {
+            // README 여기서 예외사항을 처리하지 않고 .. 넘기면 ?? 다음에는 어떻게 될까요 ?
+            // e.printStackTrace();
+        //}
         return auth;
     }
 

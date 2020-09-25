@@ -6,16 +6,20 @@ import java.util.Map;
 
 public class Log {
 	
-	public static boolean ENABLE = false;
+	public static boolean DEBUGABLED = false;
 
 	public static void v(String tag, String msg) {
-		if (ENABLE)
+		if (DEBUGABLED)
 			android.util.Log.v(tag, msg);
 	}
-	
+
 	public static void d(String tag, String msg) {
-		if (ENABLE)
+		if (DEBUGABLED)
 			android.util.Log.d(tag, msg);
+	}
+	public static void d(String tag, String msg,Throwable t) {
+		if (DEBUGABLED)
+			android.util.Log.d(tag, msg, t);
 	}
 	
 	public static void i(String tag, String msg) {
@@ -31,10 +35,12 @@ public class Log {
 	}
 	
 	public static void e(String tag, String msg) {
+		// TODO 개별 로깅 파일에 에러메시지는 저장하자.
 		android.util.Log.e(tag, msg);
 	}
 	
 	public static void e(String tag, String msg, Throwable t) {
+		// TODO 개별 로깅 파일에 에러메시지는 저장하자.
 		android.util.Log.e(tag, msg, t);
 	}
 
@@ -54,7 +60,7 @@ public class Log {
 		w("Concurrency", t.getName() + " - " + message);
 	}
 
-	public static void calling() {
+	public static void call() {
 		if (false) return;
 		android.util.Log.d("CALLING", "CALLER: " + new Throwable().getStackTrace()[2].toString());
 		android.util.Log.d("CALLING", "CALLING: " + new Throwable().getStackTrace()[1].toString());

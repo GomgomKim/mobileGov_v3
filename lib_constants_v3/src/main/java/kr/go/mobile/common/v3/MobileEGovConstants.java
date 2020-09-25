@@ -28,7 +28,7 @@ public class MobileEGovConstants {
     public static final int RESULT_OK = Activity.RESULT_OK;
     // 사용자 취소
     public static final int RESULT_USER_CANCELED = Activity.RESULT_CANCELED;
-    // 공통기반 라이브러리에서 러틴하는 실패 값 /////////////////////////
+    // 공통기반 라이브러리에서 사용되는 실패 값 /////////////////////////
     public static final int RESULT_COMMON_NOT_INSTALLED_AGENT = 20;
     public static final int RESULT_COMMON_DENIED_AGENT_PERMISSION = 21;
     public static final int RESULT_COMMON_NOT_READY_INTEGRITY_APP = 22;
@@ -69,8 +69,33 @@ public class MobileEGovConstants {
      */
     public static final int RESULT_AGENT_FAILURE_USER_AUTHENTICATION = 49005;
 
+    /**
+     * 사용자 ID (예. 000홍길동000)
+     */
     public static final String EXTRA_KEY_USER_ID = "extra_user_id";
+    /**
+     * 사용자. 조직에 대한 식별 정보가 있는 문자열 (예, cn=000홍길동000,ou=people,ou=행정안전부,o=Government of Korea,c=KR)
+     */
     public static final String EXTRA_KEY_DN = "extra_dn";
+
+    /*
+    Broker 및 Relay에서 사용하는 오류 코드 정리
+    Tom 200922
+     */
+
+    /**
+     * 보안 네트워크 미연결 상태
+     */
+    public static final int BROKER_ERROR_SECURE_NETWORK_DISCONNECTION = 1004;
+
+    /**
+     * 브로커 서비스 처리  - 정상
+     */
+    public static final int BROKER_ERROR_NONE = 1009;
+    /**
+     * 브로커 서비스 처리 결과 읽기 에러
+     */
+    public static final int BROKER_ERROR_READ = 1009;
 
 
 

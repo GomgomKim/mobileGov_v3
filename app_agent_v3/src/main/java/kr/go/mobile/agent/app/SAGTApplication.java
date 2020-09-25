@@ -7,15 +7,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.ResultReceiver;
-import androidx.annotation.NonNull;
+import android.util.Base64;
+
 import androidx.annotation.Nullable;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -23,9 +24,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import java.io.FileNotFoundException;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.security.MessageDigest;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -35,7 +40,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import kr.go.mobile.agent.service.broker.BrokerService;
-import kr.go.mobile.agent.service.broker.UserAuthentication;
 import kr.go.mobile.agent.service.monitor.ILocalMonitorService;
 import kr.go.mobile.agent.service.monitor.IntegrityConfirm;
 import kr.go.mobile.agent.service.monitor.MonitorService;
@@ -45,6 +49,7 @@ import kr.go.mobile.agent.service.session.ILocalSessionService;
 import kr.go.mobile.agent.service.session.SessionService;
 import kr.go.mobile.agent.service.session.UserSigned;
 import kr.go.mobile.agent.solution.Solution;
+import kr.go.mobile.agent.utils.Aria;
 import kr.go.mobile.agent.utils.HardwareUtils;
 import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.agent.utils.ResourceUtils;
@@ -61,29 +66,22 @@ import kr.go.mobile.mobp.iff.R;
 public class SAGTApplication extends Application implements Application.ActivityLifecycleCallbacks,
         CommonBaseInitActivity.LocalService, BrokerService.IServiceManager {
 
-    private static String TAG = SAGTApplication.class.getSimpleName();
-    private final DateFormat SUFFIX_LOGFILE = new SimpleDateFormat("ddMMyyHHmmss", Locale.KOREAN);
+    private static String TAG = "MobileGov-Core"; //SAGTApplication.class.getSimpleName();
+    private final String PREFIX_LOGFILE = "crash-log-%s.log";
+    private final DateFormat SUFFIX_LOGFILE = new SimpleDateFormat("yyMMddHHmmss", Locale.KOREAN);
 
     // Service 로 부터 실시간 데이터를 전달 받는다. (Service --> Application)
-    private ResultReceiver resultReceiver = new ResultReceiver(new Handler()) {
+    // 현재 사용되지 않고 있음.
+    @Deprecated
+    private ResultReceiver receiverMonitor = new ResultReceiver(new Handler()) {
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
-            Log.i(TAG, "서비스 응답 결과 : " + resultCode);
             switch (resultCode) {
-                case MonitorService.RESULT_SECURE_NETWORK_OK: {
-                    monitorManager.monitorNetwork(getApplicationContext());
-                    break;
-                }
                 case MonitorService.RESULT_SECURE_NETWORK_EXPIRED: {
                     Log.d(TAG, "보안 네트워크 대기 시간을 초과하였습니다. 실행 중인 행정앱을 종료합니다.");
                     break;
                 }
-                case SessionService.RESULT_SIGNED_REGISTER_OK: {
-                    sendBroadcastToActivity(CommonBaseInitActivity.EVENT_TYPE_SIGNED_REGISTERED_OK);
-                    break;
-                }
-                case SessionService.RESULT_SIGNED_REGISTER_FAIL:
                 case MonitorService.RESULT_SECURE_NETWORK_FAIL: {
                     handleFailMessage(resultData);
                     break;
@@ -100,49 +98,47 @@ public class SAGTApplication extends Application implements Application.Activity
     private ServiceConnection localServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d(TAG, "onServiceConnected - " + service.toString());
+            Log.d(TAG, "로컬 서비스에 연결되었습니다. - " + service.hashCode());
             if (service instanceof ILocalSessionService) {
                 createSessionServiceManager(service);
             } else if (service instanceof ILocalMonitorService) {
                 createMonitorServiceManager(service);
             } else {
-                throw new IllegalStateException();
+                throw new IllegalStateException("정의되지 않은 로컬서비스에 연결되었습니다.");
             }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG, "onServiceDisconnected");
-            SessionManager.destroy();
-            sessionManager = null;
+            Log.e(TAG, "로컬 서비스 연결이 해제되어 강제종료 합니다.");
+            throw new RuntimeException("로컬 서비스 연결이 해제되어 강제종료 합니다.");
         }
 
         void createSessionServiceManager(IBinder service) {
-            Log.concurrency(Thread.currentThread(), "createSessionServiceManager");
-            sessionManager = SessionManager.create(service);
+            Log.concurrency(Thread.currentThread(), "CREATE - SESSION ");
+            SESSION = SessionManager.create(service);
         }
 
         void createMonitorServiceManager(IBinder service) {
-            Log.concurrency(Thread.currentThread(), "createMonitorServiceManager");
-            monitorManager = MonitorManager.create(service);
-            MonitorManager.start(SAGTApplication.this);
+            Log.concurrency(Thread.currentThread(), "CREATE - MONITOR");
+            MONITOR = MonitorManager.create(service);
         }
     };
 
-    private boolean forceStopActivity;
-    private SessionManager sessionManager;
-    private MonitorManager monitorManager;
-    private Bundle tmpExtra;
+    private boolean forceStopLoadingActivity;
+    private SessionManager SESSION;
+    private MonitorManager MONITOR;
+
+    private boolean printTimeStamp = true;
+    private boolean exportLog = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.timeStamp("init");
-        Log.ENABLE = true;
-        Log.i(TAG, "보안 Agent 를 시작합니다.");
-
+        Log.DEBUGABLED = true;
+        Log.timeStamp("application-init");
         bindServices(new Class[]{MonitorService.class, SessionService.class});
-        registerActivityLifecycleCallbacks(this);
+        //registerActivityLifecycleCallbacks(this);
         startCrashMonitor();
     }
 
@@ -150,62 +146,65 @@ public class SAGTApplication extends Application implements Application.Activity
         for (Class<?> clazz : initServiceClasses) {
             Intent bindIntent = new Intent(this, clazz);
             bindIntent.setAction("local");
-            bindIntent.putExtra("result", resultReceiver);
+            bindIntent.putExtra("result", receiverMonitor);
             bindService(bindIntent, localServiceConnection,
                     Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT);
         }
     }
 
     public void setStopActivity() {
-        forceStopActivity = true;
-        sessionManager.finishLoginActivity();
+        forceStopLoadingActivity = true;
     }
 
     @Override
-    public void setExtraData(@NotNull Bundle extra) {
-        if (monitorManager == null) {
-            tmpExtra = extra;
-        } else {
-            monitorManager.monitorPackage(extra);
+    public void executeSolution(@NotNull Bundle extra) {
+        MONITOR.setAnotherConfirm(extra);
+    }
+
+    @Override
+    public void monitorPackage() {
+        Bundle info = MONITOR.getRunningPackageInfo();
+        MonitorManager.addMonitorPackage(this, info);
+    }
+
+    @Override
+    public void takeGenerateSigned(final CommonBaseInitActivity.TakeListener<UserSigned.STATUS> listener, Context context) {
+        if(printTimeStamp) {
+            Log.timeStamp("application-init");
+            printTimeStamp = false;
         }
-    }
 
-    @Override
-    public void takeGenerateSigned(Context context, final CommonBaseInitActivity.TakeListener<UserSigned.STATUS> listener) {
-        UserSigned signed = sessionManager.getUserSigned();
+        UserSigned signed = SESSION.getUserSigned();
         signed.startLoginActivityForResult(context, new Solution.EventListener<UserSigned>() {
             @Override
             public void onFailure(Context context, String message, Throwable t) {
                 Log.e(TAG, "인증서 로그인 모듈을 실행할 수 없습니다. (이유 : " + message + ")", t);
                 listener.onTake(UserSigned.STATUS._ERROR);
-                sessionManager.finishLoginActivity();
             }
 
             @Override
             public void onCompleted(Context context, Solution.Result<UserSigned> result) {
                 switch (result.getCode()) {
                     case _OK:
-                        Log.i(TAG, "GPKI 인증서 로그인 성공");
-                        sessionManager.registerSigned(result.out);
+                        Log.d(TAG, "GPKI 인증서 로그인 성공");
+                        SESSION.registerSigned(result.out);
+                        result.out = null;
                         listener.onTake(UserSigned.STATUS._OK);
                         break;
                     case _CANCEL:
                         listener.onTake(UserSigned.STATUS._USER_CANCEL);
                         break;
-                    case _INVALID:
-                    case _TIMEOUT:
-                    case _FAIL:
+                    default:
                         Log.e(TAG, result.getErrorMessage());
-                        throw new IllegalStateException("Unexpected value: " + result.getCode());
+                        throw new IllegalStateException("인증서 로그인 요청시 예상되지 않는 값이 전달되었습니다. value = " + result.getCode());
                 }
-                sessionManager.finishLoginActivity();
             }
         });
     }
 
     @Override
     public void validSigned() throws SessionManager.SessionException {
-        sessionManager.validSignedSession();
+        SESSION.validSignedSession();
     }
 
     @Override
@@ -234,7 +233,7 @@ public class SAGTApplication extends Application implements Application.Activity
                             "앱 검사를 진행할 수 없습니다. 종료 후 다시 실행해주시기 바랍니다."
                     };
                 } finally {
-                    if(forceStopActivity) return;
+                    if(forceStopLoadingActivity) return;
 
                     listener.onTake(ret);
                 }
@@ -243,18 +242,17 @@ public class SAGTApplication extends Application implements Application.Activity
     }
 
     @Override
-    public void takeReadyLocalService(final CommonBaseInitActivity.TakeListener<Void> listener) {
-        this.forceStopActivity = false;
+    public void takeReadyLocalService(final CommonBaseInitActivity.TakeListener<Bundle> listener, final Bundle extra) {
+        this.forceStopLoadingActivity = false;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 do {
-                    if (forceStopActivity) break;
-                    if (sessionManager == null || monitorManager == null) continue;
-                    listener.onTake(null);
+                    if (forceStopLoadingActivity) break;
+                    if (SESSION == null || MONITOR == null) continue;
+                    listener.onTake(extra);
                     break;
                 } while (true);
-                Log.concurrency(Thread.currentThread(), "쓰레드 종료");
             }
         }, "wait for certification login status").start();
     }
@@ -265,16 +263,14 @@ public class SAGTApplication extends Application implements Application.Activity
             @Override
             public void run() {
                 do {
-                    if (forceStopActivity) break;
-                    if (monitorManager == null) continue;;
+                    if (forceStopLoadingActivity) break;
+                    if (MONITOR == null) continue;;
 
-                    String confirm = monitorManager.getConfirm();
-                    if (confirm.isEmpty()) continue;
+                    if (MONITOR.getIntegrityStatus() == IntegrityConfirm.STATUS._UNKNOWN) continue;
 
-                    listener.onTake(IntegrityConfirm.STATUS._VERIFIED);
+                    listener.onTake(MONITOR.getIntegrityStatus());
                     break;
                 }  while (true);
-                Log.concurrency(Thread.currentThread(), "쓰레드 종료");
             }
         }, "wait for integrity status").start();
     }
@@ -285,16 +281,15 @@ public class SAGTApplication extends Application implements Application.Activity
             @Override
             public void run() {
                 do {
-                    if (forceStopActivity) break;
-                    if (monitorManager == null) continue;
+                    if (forceStopLoadingActivity) break;
+                    if (MONITOR == null) continue;
 
-                    ThreatDetection.STATUS status = monitorManager.getThreatStatus();
+                    ThreatDetection.STATUS status = MONITOR.getThreatStatus();
                     if (status == null) continue;
 
                     listener.onTake(status);
                     break;
                 } while (true);
-                Log.concurrency(Thread.currentThread(), "쓰레드 종료");
             }
         }, "wait for safe device status").start();
     }
@@ -303,8 +298,12 @@ public class SAGTApplication extends Application implements Application.Activity
     public void taskConnectedSecureNetwork(final CommonBaseInitActivity.TakeListener<SecureNetwork.STATUS> listener) {
         ////// SSL-VPN 솔루션에 종속적인 코드임. (SSL-VPN 에 로그인하기 위하여 약속된 ID 생성) //////////
         String hardwareID = HardwareUtils.getAndroidID(this);
-        String signedUserDN = sessionManager.getUserDN();
-        String confirmTokens = monitorManager.getConfirm();
+        String signedUserDN = SESSION.getUserDN();
+        String confirmTokens = MONITOR.getConfirm();
+        if (confirmTokens == null) {
+            listener.onTake(SecureNetwork.STATUS._ERROR);
+            return;
+        }
         String loginId = String.format("%s,deviceID=%s|%s", signedUserDN, hardwareID, confirmTokens);
         String loginPw = "";
         ////// ///////////////////////////////////////////////////////////////////////// //////////
@@ -313,15 +312,15 @@ public class SAGTApplication extends Application implements Application.Activity
             @Override
             public void run() {
                 do {
-                    if (forceStopActivity) break;
+                    if (forceStopLoadingActivity) break;
 
-                    SecureNetwork.STATUS status = monitorManager.getSecureNetworkStatus();
-                    if (status == null) continue;
+                    SecureNetwork.STATUS status = MONITOR.getSecureNetworkStatus();
+                    // 보안 네트워크 연결 요청을 했기 때문에 연결과 오류 상태만 필요하다.
+                    if (status == SecureNetwork.STATUS._UNKNOWN || status == SecureNetwork.STATUS._DISCONNECTED) continue;
 
                     listener.onTake(status);
                     break;
                 } while (true);
-                Log.concurrency(Thread.currentThread(), "쓰레드 종료");
             }
 
         }, "wait for connection secure network").start();
@@ -335,9 +334,9 @@ public class SAGTApplication extends Application implements Application.Activity
             @Override
             public void run() {
                 do {
-                    if(forceStopActivity) break;
+                    if(forceStopLoadingActivity) break;
                     try {
-                        sessionManager.validSession();
+                        SESSION.validSession();
                         listener.onTake("");
                         break;
                     } catch (SessionManager.SessionException e) {
@@ -351,31 +350,109 @@ public class SAGTApplication extends Application implements Application.Activity
                         }
                     }
                 } while (true);
-                Log.concurrency(Thread.currentThread(), "쓰레드 종료");
             }
         }, "wait for confirm certification").start();
     }
 
     @Override
+    public String getErrorMessage(int type) {
+        return MONITOR.getErrorMessage(type);
+    }
+
+    @Override
     public void clearToken() {
-        // TODO
+        MONITOR.clear();
+    }
+
+    @Override
+    public void clearSession() {
+        SESSION.clear();
     }
 
     @Override
     public boolean notReadySecureNetwork() {
-        SecureNetwork.STATUS status = monitorManager.getSecureNetworkStatus();
-        if (status == null || !status.equals(SecureNetwork.STATUS._CONNECTED)) {
-            return true;
-        }
-        return false;
+        SecureNetwork.STATUS status = MONITOR.getSecureNetworkStatus();
+        return status == null || !status.equals(SecureNetwork.STATUS._CONNECTED);
     }
 
     @Override
-    public Bundle getResultBundle() {
+    public Bundle getUserBundle() {
         Bundle extra = new Bundle();
-        extra.putString(MobileEGovConstants.EXTRA_KEY_USER_ID, sessionManager.getUserId());
-        extra.putString(MobileEGovConstants.EXTRA_KEY_DN, sessionManager.getUserDN());
+        extra.putString(MobileEGovConstants.EXTRA_KEY_USER_ID, SESSION.getUserId());
+        extra.putString(MobileEGovConstants.EXTRA_KEY_DN, SESSION.getUserDN());
         return extra;
+    }
+
+    @Override
+    public void exportCrashLog() {
+        if (exportLog) {
+            return;
+        }
+        exportLog = true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final String regex = PREFIX_LOGFILE.replace("%s", "(\\d){12}");
+                String[] logFileNames = getFilesDir().list(new FilenameFilter() {
+                    @Override
+                    public boolean accept(File dir, String name) {
+                        return name.matches(regex);
+                    }
+                });
+
+                File externalPath = getExternalFilesDir("log");
+
+                if (logFileNames == null || externalPath == null) return;
+
+                if (externalPath.mkdirs()) {
+                    Log.d(TAG, "export 경로 생성 완료");
+                }
+
+                for(String logFileName : logFileNames) {
+                    String source = getFilesDir().getAbsolutePath() + File.separator + logFileName;
+                    String dest = externalPath.getAbsolutePath() + File.separator + logFileName;
+                    FileInputStream fis = null;
+                    FileOutputStream fos = null;
+                    FileChannel fic = null;
+                    FileChannel foc = null;
+                    try {
+                        fis = new FileInputStream(source);
+                        fos = new FileOutputStream(dest);
+                        fic = fis.getChannel();
+                        foc = fos.getChannel();
+                        foc.transferFrom(fic, 0, fic.size());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        if (foc != null) {
+                            try {
+                                foc.close();
+                            } catch (IOException ignored) {
+                            }
+                        }
+                        if (fos != null) {
+                            try {
+                                fos.close();
+                            } catch (IOException ignored) {
+                            }
+                        }
+                        if (fic != null) {
+                            try {
+                                fic.close();
+                            } catch (IOException ignored) {
+                            }
+                        }
+                        if (fis != null) {
+                            try {
+                                fis.close();
+                            } catch (IOException ignored) {
+                            }
+                        }
+                    }
+                    new File(source).delete();
+                }
+            }
+        }, "export to ExternalPath").start();
     }
 
     void checkPackages() throws NotInstalledRequiredPackagesException, UninstallExpiredPackagesException, Exception {
@@ -432,18 +509,6 @@ public class SAGTApplication extends Application implements Application.Activity
         }
     }
 
-    public void sendBroadcastToActivity(int event) {
-        sendBroadcastToActivity(event, "");
-    }
-
-    public void sendBroadcastToActivity(int event, String message) {
-        Intent i = new Intent(CommonBaseInitActivity.ACTION_EVENT);
-        i.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-        i.putExtra(CommonBaseInitActivity.ACTION_EXTRA_TYPE, event);
-        i.putExtra(CommonBaseInitActivity.ACTION_EXTRA_MESSAGE, message);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
-    }
-
     private void startCrashMonitor() {
         Thread.UncaughtExceptionHandler _DEFAULT_HANDLER = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(new CrashHandler(new Handler()));
@@ -456,31 +521,76 @@ public class SAGTApplication extends Application implements Application.Activity
         } catch (CrashHandler.MegRuntimeException e) {
             // runtime 중 백그라운드 스레드에서 발생한 예기치 못한 예외사항
             Log.e(TAG, String.format("%s 스레드에서 예기치 않은 오류가 발생하였습니다. (PID : %d)",  e.threadName, e.pid), e.getCause());
-            if (e.getCause() != null) {
-                writeCrashLog(e.getCause());
-                cause = e.getMessage();
+            cause = e.getMessage();
+            try {
+                if (e.getCause() != null) {
+                    writeCrashLog(e.getCause());
+                }
+            } catch (Exception ex) {
+                Log.d(TAG, "로그 생성 실패", ex);
             }
         } catch (Throwable e) {
             // UI 스레드에서 발생한 예기치 못한 예외사항
             Log.e(TAG, "UI 스레드에서 예기치 않은 오류가 발생하였습니다.", e);
-            writeCrashLog(e);
+            try {
+                writeCrashLog(e);
+            } catch (Exception ex) {
+                Log.e(TAG, "로그 생성 실패", ex);
+            }
             cause = e.getMessage();
         } finally {
+            forceStopLoadingActivity = true;
+
             // 예기치 않은 에러 발생할 경우 종료!
             Log.e(TAG, "예기치 않은 오류로 앱을 종료합니다. " + cause);
-            finishApplication();
+            final Intent i = new Intent(this, CommonBaseInitActivity.class);
+            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            i.putExtra("message", cause);
+
+            MonitorManager.stopSecureNetwork(this);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    do {
+                        SecureNetwork.STATUS status = MONITOR.getSecureNetworkStatus();
+                        if (status == SecureNetwork.STATUS._CONNECTED) continue;
+
+                        startActivity(i);
+                        break;
+                    } while (true);
+                }
+
+            }, "wait for disconnection secure network").start();
+
+
         }
     }
 
-    private void writeCrashLog(@NonNull Throwable t)  {
+    private void writeCrashLog(Throwable t) throws Exception {
+        String cert = null;
+        if (!Log.DEBUGABLED) {
+            Signature certSignature;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                certSignature = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES).signingInfo.getApkContentsSigners()[0];
+            } else {
+                certSignature = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES).signatures[0];
+            }
+            MessageDigest msgDigest = MessageDigest.getInstance("SHA1");
+            msgDigest.update(certSignature.toByteArray());
+            cert = Base64.encodeToString(msgDigest.digest(), Base64.DEFAULT);
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("- Throwable Message: ").append(t.toString()).append("\n\n");
-        String PREFIX_LOGFILE = "crash-log-%s.log";
         String exportFileName = String.format(PREFIX_LOGFILE, SUFFIX_LOGFILE.format(new Date()));
         StackTraceElement[] arr = t.getStackTrace();
         sb.append("--------- Stack trace ---------\n\n");
         for (StackTraceElement stackTraceElement : arr) {
-            sb.append("\t").append(stackTraceElement.toString()).append("\n");
+            String encrypt = stackTraceElement.toString();
+            if (cert != null) {
+                encrypt = new Aria(cert).encrypt(encrypt);
+            }
+            sb.append("\t").append(encrypt).append("\n");
         }
         sb.append("-------------------------------\n\n");
         String stringSubCause = getCauseMessage(t);
@@ -491,10 +601,6 @@ public class SAGTApplication extends Application implements Application.Activity
             fout = openFileOutput(exportFileName, Context.MODE_PRIVATE);
             fout.write(sb.toString().getBytes());
             fout.flush();
-        } catch (FileNotFoundException e) {
-            Log.w(TAG, "ERROR Write CrashLog - File not create", e);
-        } catch (IOException e) {
-            Log.w(TAG, "ERROR Write CrashLog - File IO", e);
         } finally {
             if (fout != null) {
                 try {
@@ -506,7 +612,6 @@ public class SAGTApplication extends Application implements Application.Activity
         }
     }
 
-    @NotNull
     private String getCauseMessage(Throwable t) {
         StringBuilder sb = new StringBuilder();
 
@@ -526,24 +631,14 @@ public class SAGTApplication extends Application implements Application.Activity
         return sb.toString();
     }
 
-    private void finishApplication() {
-        if (topActivity.get() != null) {
-            // 마지막 resume activity 가 존재하면
-            topActivity.get().moveTaskToBack(true);
-            topActivity.get().finish();
-        }
-        System.exit(0);
-    }
-
-
     @Override
-    public SessionManager getSessionManager() {
-        return this.sessionManager;
+    public SessionManager getSession() {
+        return this.SESSION;
     }
 
     @Override
-    public MonitorManager getMonitorManager() {
-        return this.monitorManager;
+    public MonitorManager getMonitor() {
+        return this.MONITOR;
     }
 
     ////////////// Activity Lifecycle Callback /////////////////
@@ -558,6 +653,7 @@ public class SAGTApplication extends Application implements Application.Activity
         }
         return this.topActivity.get();
     }
+
     private void deleteTopActivity(Activity activity) {
         resumeActivities.remove(activity);
         if (topActivity.get().equals(activity)) {
@@ -573,30 +669,32 @@ public class SAGTApplication extends Application implements Application.Activity
     }
 
     @Override
-    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+    public void onActivityCreated(@NotNull Activity activity, @Nullable Bundle savedInstanceState) {
 //        Log.d(TAG, "onActivityCreated - " + activity.toString());
     }
 
     @Override
-    public void onActivityStarted(@NonNull Activity activity) {
+    public void onActivityStarted(@NotNull Activity activity) {
 //        Log.d(TAG, "onActivityStarted - " + activity.toString());
     }
 
     @Override
-    public void onActivityResumed(@NonNull Activity activity) {
+    public void onActivityResumed(Activity activity) {
         setTopActivity(activity);
 //        Log.d(TAG, "onActivityResumed - " + activity.toString());
     }
 
     @Override
-    public void onActivityPaused(@NonNull Activity activity) {
+    public void onActivityPaused(@NotNull Activity activity) {
 //        Log.d(TAG, "onActivityPaused - " +activity.toString());
         changeStatus(activity);
         Enumeration<Activity> keys = resumeActivities.keys();
         int resumeCount = 0;
         while(keys.hasMoreElements()) {
             Activity a = keys.nextElement();
+            if (a == null) continue;
             boolean isResume = resumeActivities.get(a);
+
             if (isResume) {
                 resumeCount++;
             }
@@ -610,13 +708,13 @@ public class SAGTApplication extends Application implements Application.Activity
     }
 
     @Override
-    public void onActivityStopped(@NonNull Activity activity) {}
+    public void onActivityStopped(@NotNull Activity activity) {}
 
     @Override
-    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {}
+    public void onActivitySaveInstanceState(@NotNull Activity activity, @NotNull Bundle outState) {}
 
     @Override
-    public void onActivityDestroyed(@NonNull Activity activity) {
+    public void onActivityDestroyed(@NotNull Activity activity) {
         deleteTopActivity(activity);
     }
 

@@ -13,7 +13,7 @@ public class BrokerResponse<T> implements Parcelable {
         this(code, null, obj);
     }
 
-    protected BrokerResponse(int code, String message, T obj) {
+    public BrokerResponse(int code, String message, T obj) {
         this.code = code;
         this.message = message;
         if (obj != null) {

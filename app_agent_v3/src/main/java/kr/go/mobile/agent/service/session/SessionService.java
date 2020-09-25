@@ -49,8 +49,8 @@ public class SessionService extends Service {
         }
 
         @Override
-        public void registerAuthentication(UserAuthentication authentication) {
-           SessionService.this.authentication = authentication;
+        public void registerAuthentication(UserAuthentication newAuthentication) {
+           authentication = newAuthentication;
         }
 
         @Override
@@ -70,10 +70,13 @@ public class SessionService extends Service {
             return userSigned;
         }
 
-//        @Override
-        public void clearUserAuthentication() {
+        @Override
+        public void clear() {
             if (authentication != null)
                 authentication.clear();
+            if (userSigned != null) {
+                userSigned.clear();
+            }
         }
     }
 

@@ -58,9 +58,9 @@ public class SessionManager {
             UserSigned signed = session.getUserSigned();
             signed.validSession();
         } catch (UserSigned.ExpiredException e) {
-            throw new SessionException(SessionException.EXPIRED_SIGNED_SESSION, "서명 세션이 만료되었습니다.");
+            throw new SessionException(SessionException.EXPIRED_SIGNED_SESSION, e.getMessage());
         } catch (NullPointerException e) {
-            throw new SessionException(SessionException.NO_SIGNED_SESSION, "서명 세션이 존재하지 않습니다.");
+            throw new SessionException(SessionException.NO_SIGNED_SESSION, e.getMessage());
         }
     }
 
@@ -79,11 +79,9 @@ public class SessionManager {
         }
     }
 
-    public void finishLoginActivity() {
-        session.getUserSigned().finishLoginActivity();
+    public void clear() {
+        session.clear();
     }
-
-
 
 
     public static class SessionException extends Exception {

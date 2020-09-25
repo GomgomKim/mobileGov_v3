@@ -4,16 +4,18 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
-import android.os.RemoteException;
 import android.util.Log;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import kr.go.mobile.agent.app.SAGTApplication;
 
 import static java.lang.Class.forName;
 
 public abstract class Solution<IN, OUT> {
+
+
 
     public enum RESULT_CODE {
         _OK,        // 정상 처리
@@ -42,6 +44,9 @@ public abstract class Solution<IN, OUT> {
     }
 
     public static class SolutionRuntimeException extends RuntimeException {
+        public SolutionRuntimeException(String message) {
+            super(message);
+        }
         public SolutionRuntimeException(String message, Exception e) {
             super(message, e);
         }
@@ -54,86 +59,119 @@ public abstract class Solution<IN, OUT> {
         void onCompleted(Context context, Result<OUT> out);
     }
 
-    final Object LOCK = new Object();
-
     boolean isOperation = false;
     boolean isCancel = false;
-    EventListener<OUT> mEventListener;
-    Thread thread;
+    ArrayBlockingQueue<Result<OUT>> waitQueue;
+    EventListener<OUT> defaultEventListener;
+    Thread processThread;
+    boolean enabledMonitor;
+    Thread monitorThread;
+
 
     public Solution(Context context) {
-        prepare(context);
     }
 
-    protected void prepare(Context context) { }
-
-    public final void execute(Context context, EventListener<OUT> listener) {
-        execute(context, (IN) null, listener);
+    public void setDefaultEventListener(EventListener<OUT> listener) {
+        this.defaultEventListener = listener;
     }
 
-    public final void execute(Context context, boolean enabledUI, EventListener<OUT> listener) {
-        execute(context, (IN) null, enabledUI, listener);
+    public final void execute(Context context) {
+        execute(context, (IN) null);
     }
 
-    public final void execute(Context context, IN in, EventListener<OUT> listener) {
-        execute(context, in, false, listener);
+    public final void execute(Context context, boolean enabledUI) {
+        execute(context, (IN) null, enabledUI);
     }
 
-    public final void execute(final Context context, final IN in, boolean enabledUI, EventListener<OUT> listener) {
+    public final void execute(Context context, IN in) {
+        execute(context, in, false);
+    }
+
+    public final void execute(final Context context, final IN in, boolean enabledUI) {
         if (isOperation) {
             Log.d(getClass().getSimpleName(), "이미 실행 중입니다.");
             return;
         }
         isCancel = false;
         isOperation = true;
-        mEventListener = (listener == null) ? new EventListener<OUT>() {
-            @Override
-            public void onFailure(Context context, String message, Throwable t) {
-                Log.w("Solution.EventListener", "Solution.EventListener is null, execute() 호출 시 EventListener 를 선언하시기 바랍니다. (onFailure)");
-            }
 
-            @Override
-            public void onCompleted(Context context, Result<OUT> o) {
-                Log.w("Solution.EventListener", "Solution.EventListener is null, execute() 호출 시 EventListener 를 선언하시기 바랍니다. (onCompleted)");
-            }
-        } : listener;
+        if (defaultEventListener == null) {
+            throw new IllegalArgumentException("솔루션 처리 후 응답 받을 EventListener 가 존재하지 않습니다.");
+        }
 
         if (enabledUI) {
-            process(context, in);
+            handle(context, in);
         } else {
-            thread = new Thread(new Runnable() {
+            processThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    process(context, in);
+                    handle(context, in);
                 }
             });
-            thread.setName(getClass().getName());
-            thread.start();
+            processThread.setName(getClass().getSimpleName() + "- THREAD");
+            processThread.start();
         }
     }
 
-    final void process(Context context, IN in) {
+    final void handle(Context context, IN in) {
+        Log.d(getClass().getSimpleName(), "------------- begin --------------");
+
         try {
-            Result<OUT> result = execute(context, in);
+            Result<OUT> result = process(context, in);
             if (result == null) {
+                waitQueue = new ArrayBlockingQueue<>(1);
                 // result 가 null 이면 응답을 기다려야함.
-                return;
+                result = waitQueue.take();
+                waitQueue.clear();
+                waitQueue = null;
             }
-            completedProcess(context, result);
-        } catch (SolutionRuntimeException e) {
-            failedProcess(context, e);
+            defaultEventListener.onCompleted(context, result);
+        } catch (SolutionRuntimeException | InterruptedException e) {
+            defaultEventListener.onFailure(context, e.getMessage(), e);
+        } finally {
+            finish();
         }
     }
 
-    protected abstract Result<OUT> execute(Context context, IN in) throws SolutionRuntimeException;
-
-    protected final void completedProcess(Context context, Result<OUT> r) {
-        mEventListener.onCompleted(context, r);
+    public void setResult(Result<OUT> result) {
+        if (waitQueue == null) {
+            Log.e(getClass().getSimpleName(), "응답 데이터를 기다리지 않고 있습니다.");
+            return;
+        }
+        waitQueue.offer(result);
     }
 
-    protected final void failedProcess(Context context, Throwable t) {
-        mEventListener.onFailure(context, t.getMessage(), t);
+    public void enabledMonitor() {
+        if (waitQueue == null) {
+            waitQueue = new ArrayBlockingQueue<>(1);
+        }
+        Log.d(getClass().getSimpleName(), "모니터링 활성화");
+        enabledMonitor = true;
+        if (monitorThread == null) {
+            monitorThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    do {
+                        try {
+                            Result<OUT> result = waitQueue.take();
+                            defaultEventListener.onCompleted(null, result);
+                        } catch (InterruptedException ignored) {
+                        }
+                    } while (enabledMonitor);
+                }
+            }, getClass().getSimpleName() + "-monitor");
+            monitorThread.start();
+        }
     }
+
+    public void disabledMonitor() {
+        enabledMonitor = false;
+        monitorThread.interrupt();
+        monitorThread = null;
+        Log.d(getClass().getSimpleName(), "모니터링 비활성화");
+    }
+
+    protected abstract Result<OUT> process(Context context, IN in) throws SolutionRuntimeException;
 
     protected Integer[] getRequestCodes() {
         return new Integer[0];
@@ -144,29 +182,33 @@ public abstract class Solution<IN, OUT> {
     }
 
     public void finish() {
-        if (thread != null) {
-            thread.interrupt();
+        if (processThread != null) {
+            processThread.interrupt();
+            processThread = null;
         }
         isOperation = false;
         isCancel = false;
+        Log.d(getClass().getSimpleName(), "------------- finish --------------");
     }
 
     public void cancel() {
-        if (thread != null) {
-            thread.interrupt();
+        if (processThread != null) {
+            processThread.interrupt();
+            processThread = null;
         }
     }
 
-    final Context getContext() throws RuntimeException {
-        // FIXME 확인 후 불필요할 경우 삭제
-        SAGTApplication application = (SAGTApplication) getApplication();
-        Context ctx = application.getTopActivity();
-        if (ctx == null) {
-            return application.getApplicationContext();
-        } else {
-            return ctx;
-        }
-    }
+//    @Deprecated
+//    final Context getContext() throws RuntimeException {
+//        // FIXME 확인 후 불필요할 경우 삭제
+//        SAGTApplication application = (SAGTApplication) getApplication();
+//        Context ctx = application.getTopActivity();
+//        if (ctx == null) {
+//            return application.getApplicationContext();
+//        } else {
+//            return ctx;
+//        }
+//    }
 
     final Application getApplication() {
         try {

@@ -8,25 +8,24 @@ import java.net.URLEncoder;
 
 public class BrokerTask implements Parcelable {
 
-    static String SERVICE_ID_CERT_AUTH = "CMM_CERT_AUTH_MAM";
-
     public String serviceId;
     public String serviceParam;
     IBrokerServiceCallback serviceCallback;
 
-    public static BrokerTask generateAuthTask(String authParams) {
-        BrokerTask t = new BrokerTask();
-        t.serviceId = SERVICE_ID_CERT_AUTH;
-        t.serviceParam = authParams;
-        return t;
+    public static BrokerTask obtain() {
+        return obtain("");
     }
 
-    public static BrokerTask obtain() {
+    public static BrokerTask obtain(String serviceId) {
         // TODO 재사용 로직으로 구현 필요
-        return new BrokerTask();
+        return new BrokerTask(serviceId);
     }
 
     private BrokerTask() {}
+
+    private BrokerTask(String serviceId) {
+        this.serviceId = serviceId;
+    }
 
 
     protected BrokerTask(Parcel in) {
@@ -57,9 +56,9 @@ public class BrokerTask implements Parcelable {
         dest.writeString(serviceParam);
     }
 
-    public void setCallback(IBrokerServiceCallback callback) {
-        this.serviceCallback = callback;
-    }
+//    public void setCallback(IBrokerServiceCallback callback) {
+//        this.serviceCallback = callback;
+//    }
 
     public String getServiceId() { return serviceId; }
 

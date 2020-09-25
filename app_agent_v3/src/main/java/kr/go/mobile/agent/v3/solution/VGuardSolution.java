@@ -32,35 +32,35 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
     static final int ERROR_INFECTED_PACKAGE = 10002;
     static final int ERROR_ROOTING_DEVICE = 10003;
 
-    VGRemote mVGRemote;
     final AtomicBoolean isBound = new AtomicBoolean(false);
+    VGRemote mVGRemote;
+    boolean applyPolicy = false;
+
 
     public VGuardSolution(Context context) {
         super(context);
-    }
-
-    @Override
-    protected void prepare(Context context) {
-        Log.d(TAG, "STEP 1. V-Guard 초기화 ");
+        Log.d(TAG, "V-Guard 초기화");
         mVGRemote = new VGRemote(context, this);
     }
 
+
     @Override
     public void onBinded() {
-        Log.d(TAG, "STEP 2. V-Guard 연결 성공 ");
+        Log.d(TAG, "V-Guard 초기화 성공 ");
         isBound.getAndSet(true);
     }
 
     @Override
     public void onUnbinded() {
-        Log.w(TAG, "V-Guard 연결 해제");
+        Log.w(TAG, "V-Guard 연결 실패");
         mVGRemote.closeUnRegisterReceiver();
         isBound.getAndSet(false);
     }
 
     @Override
     public void onRegistedReceiver(Intent intent) {
-        // VG 로부터 전달받는 이벤트.
+        Log.i(TAG, "실시간 이벤트가 발생하였습니다.");
+        // 실시간으로 VG 로부터 전달받는 이벤트.
         String action = intent.getAction();
         String strThreatData = intent.getStringExtra(VGRemote.SECYRITYLIST);
         if (Objects.equals(action, VGRemote.SECYRITYACTION) && strThreatData != null) {
@@ -68,7 +68,9 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
                 ThreatDetection.STATUS status = parse(strThreatData, true);
                 Result<ThreatDetection.STATUS> result = new Result<>(RESULT_CODE._OK);
                 result.out = status;
-                completedProcess(null, result);
+                // TODO 실시간으로 전달받은 메시지는 어떻게 처리할까 ???
+                Log.e(TAG, "실시간으로 전달받은 메시지는 아직 처리하지 않고 있음. (status = " + status + ")");
+                setResult(result);
             } catch (JSONException e) {
                 Log.w(TAG, "V-Guard 엔터프라이즈로부터 수신한 이벤트 값을 확인할 수 없습니다.");
             }
@@ -79,7 +81,7 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
 
 
     @Override
-    protected Result<ThreatDetection.STATUS> execute(Context context, Void v) throws SolutionRuntimeException {
+    protected Result<ThreatDetection.STATUS> process(Context context, Void v) throws SolutionRuntimeException {
 
         do {
             if (!isBound.compareAndSet(false, false)) break;
@@ -87,24 +89,32 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
 
         int resultCode;
 
-        Log.d(TAG, "STEP 3. V-Guard 허용 퍼미션을 확인합니다.");
+        Log.d(TAG, "STEP 1. V-Guard 허용 퍼미션을 확인합니다.");
         String ret = mVGRemote.VGRunCMD(VGRemote.CMD_VG_PERMISSION);
         if ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
+            applyPolicy = false;
             return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
         }
-        Log.d(TAG, "STEP 4. V-Guard 정책을 설정합니다.");
-        ret = mVGRemote.VGRunCMD(VGRemote.CMD_POLICY_SAVE, "default_policy");
-        if  ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
-            return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
+        if (applyPolicy) {
+            Log.d(TAG, "STEP 2. V-Guard 정책이 이미 설정되어 있습니다.");
+        } else {
+            Log.d(TAG, "STEP 2. V-Guard 정책을 설정합니다.");
+            ret = mVGRemote.VGRunCMD(VGRemote.CMD_POLICY_SAVE, "default_policy");
+            if  ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
+                return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
+            }
+            ret = mVGRemote.VGRunCMD(VGRemote.CMD_POLICY_APPLY);
+            if  ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
+                return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
+            }
+            applyPolicy = true;
         }
-        ret = mVGRemote.VGRunCMD(VGRemote.CMD_POLICY_APPLY);
-        if  ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
-            return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
-        }
-        Log.d(TAG, "STEP 5. V-Guard 스캔을 시작합니다.");
+
+        Log.d(TAG, "STEP 3. V-Guard 스캔을 시작합니다.");
         ret = mVGRemote.VGRunCMD(VGRemote.CMD_VG_SECURITY_THREAT);
         try {
             Result<ThreatDetection.STATUS> result = new Result<>(RESULT_CODE._OK);
+            Log.d(TAG, "STEP 4. V-Guard 스캔 결과 확인");
             result.out = parse(ret);
             return result;
         } catch (JSONException e) {
@@ -166,7 +176,7 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
     }
 
     private ThreatDetection.STATUS parse(String strThreatData, boolean realtime) throws JSONException {
-        Log.d(TAG, "STEP 6. V-Guard 스캔 결과 확인");
+
         JSONObject jsonObject;
         String VG_DATA_SPLIT = ";";
         String[] arrData = strThreatData.split(VG_DATA_SPLIT);

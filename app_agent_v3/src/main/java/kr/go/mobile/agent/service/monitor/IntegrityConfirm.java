@@ -3,57 +3,71 @@ package kr.go.mobile.agent.service.monitor;
 import android.content.Context;
 
 import kr.go.mobile.agent.solution.Solution;
+import kr.go.mobile.agent.solution.Solution.EventListener;
 import kr.go.mobile.agent.solution.SolutionManager;
+import kr.go.mobile.agent.utils.Log;
 
 public class IntegrityConfirm {
 
+
     public enum STATUS {
+        _UNKNOWN,
         _VERIFIED,
-        _NOT_VERIFIED,
-        _ERROR;
+        _NOT_VERIFIED;
     }
 
-    private boolean confirm = false;
+    private STATUS status;
     private String agentToken;
     private String anotherToken;
     private Solution<?, ?> integritySolution;
 
-    public IntegrityConfirm(Context context, String solutionName) throws SolutionManager.ModuleNotFoundException  {
+    public IntegrityConfirm(Context context, String solutionName, EventListener listener) throws SolutionManager.ModuleNotFoundException  {
+        status = STATUS._UNKNOWN;
         integritySolution = SolutionManager.initSolutionModule(context, solutionName);
-    }
-
-    public void confirm(Solution.EventListener listener) {
-        integritySolution.execute(null, listener);
-    }
-
-    public boolean isConfirm() {
-        return confirm;
+        integritySolution.setDefaultEventListener(listener);
     }
 
     public void setAnotherConfirm(String token) {
         this.anotherToken = token;
+        this.agentToken = null;
+    }
+
+    public void confirm() {
+        status = STATUS._UNKNOWN;
+        integritySolution.execute(null);
     }
 
     public void setConfirm(String token) {
-        confirm = true;
+        status = STATUS._VERIFIED;
         agentToken = token;
     }
 
     public void setDeny(String denyMessage) {
-        confirm = false;
+        status = STATUS._NOT_VERIFIED;
         agentToken = denyMessage;
+    }
+
+
+    public String getErrorMessage() {
+        if (status == STATUS._NOT_VERIFIED)
+            return agentToken;
+        return "N/A";
+    }
+
+    public STATUS status() {
+        return status;
     }
 
     public String getTokens() {
         if (this.agentToken == null || this.anotherToken == null) {
-            return "";
+            return null;
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append(agentToken);
-        sb.append(",");
-        sb.append(anotherToken);
-        return sb.toString();
+        return String.format("%s,%s", agentToken, anotherToken);
     }
 
-
+    public void clear() {
+        Log.call();
+        agentToken = null;
+        anotherToken = null;
+    }
 }

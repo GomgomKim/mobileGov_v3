@@ -49,7 +49,7 @@
 
         <!-- 보안 Agent 2.x 서비스 -->
         <service
-            android:name="kr.go.mobile.agent.service.old.OldServiceV2"
+            android:name="kr.go.mobile.agent.service.old.OldBrokerService"
             android:enabled="true"
             android:exported="true"
             android:permission="kr.go.mobile.permission.ACCESS_SERVICE_BROKER">
@@ -58,7 +58,17 @@
             </intent-filter>
         </service>
 
-        <!-- 보안 Agent 2.x 서비스 -->
+        <service
+            android:name="kr.go.mobile.agent.service.old.OldAliveService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="kr.go.mobile.permission.ACCESS_SERVICE_BROKER">
+            <intent-filter>
+                <action android:name="kr.go.mobile.service.ACTION_ALIVE_SERVICE" />
+            </intent-filter>
+        </service>
+
+        <!-- 보안 Agent 3.x 서비스 -->
         <service
             android:name="kr.go.mobile.agent.service.broker.BrokerService"
             android:exported="false" />
