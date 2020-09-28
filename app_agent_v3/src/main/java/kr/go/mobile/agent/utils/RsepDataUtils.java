@@ -59,7 +59,7 @@ public class RsepDataUtils {
         // String 데이터로 보내는 것 같아서 생성한 함수
         // json으로 보낸다면 삭제해도 됨
         StringBuilder respStringdata = new StringBuilder();
-        respStringdata.append("result : ").append(respData.data_result);
+        respStringdata.append(respData.data_result);
         respStringdata.append("  % : ").append(respData.data_data);
         respStringdata.append("  aaadasdsa2 : ").append(respData.data_data2);
         return respStringdata.toString();

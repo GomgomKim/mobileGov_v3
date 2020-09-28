@@ -78,6 +78,7 @@ public class OldBrokerService extends Service {
                         // TODO BrokerResponse.getCode() 값에 따른 처리 분기 (참고. HttpTask.java line 44)
                         int code = response.getCode();
                         String respMessage = (String) response.getResult();
+                        String errMessage = (String) response.getErrorMessage();
                         if(code == MobileEGovConstants.BROKER_ERROR_NONE){
                             // 데이터 들어왔을 때
                             if (respMessage.length() > 20000 ) {
@@ -118,6 +119,9 @@ public class OldBrokerService extends Service {
                             } else {
                                 callback.success((String)response.getResult());
                             }
+                        }
+                        else if(code == MobileEGovConstants.BROKER_ERROR_PROC_DATA){
+                            callback.fail(code, errMessage);
                         }
 
 

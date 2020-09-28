@@ -48,6 +48,9 @@ public class RelayClient {
      */
 
     private final static String TAG = RelayClient.class.getSimpleName();
+    private final String BROKER_ERROR_PROC_DATA_STRING = "데이터 요청에 대한 응답데이터 처리 중 에러가 발생하였습니다.";
+    private final String BROKER_ERROR_CONNECT_HTTP_STRING = "서버 응답 에러가 발생했습니다. 행정서버에 문의하세요.";
+    private final String BROKER_ERROR_RESP_COMMON_DATA_STRING = "공통기반 시스템 에러입니다. 행정기관에 문의하세요.";
 
     String baseURL;
     Retrofit retrofit;
@@ -164,9 +167,9 @@ public class RelayClient {
                         UserAuthentication respData = RsepDataUtils.parseUserAuthentication(result);
                         resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_NONE, respData);
                     } catch (IOException | JSONException e) {
-                        Log.e(TAG, R.string.broker_error_porc_data + "(" + e.getMessage() + ")", e);
+                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING + "(" + e.getMessage() + ")", e);
                         resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_PROC_DATA,
-                                R.string.broker_error_porc_data +  "(" + e.getMessage() + ")", null);
+                                BROKER_ERROR_PROC_DATA_STRING +  "(" + e.getMessage() + ")", null);
                     }
 
                     try {
@@ -175,9 +178,9 @@ public class RelayClient {
                     }
 
                 } else { // http 통신 실패
-                    Log.e(TAG, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                    Log.e(TAG, BROKER_ERROR_CONNECT_HTTP_STRING + " (HTTP 상태코드 : " + response.code() + ")");
                     try {
-                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_CONNECT_HTTP, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_CONNECT_HTTP, BROKER_ERROR_CONNECT_HTTP_STRING + " (HTTP 상태코드 : " + response.code() + ")");
                     } catch (RemoteException ignored) {
                     }
                 }
@@ -190,12 +193,12 @@ public class RelayClient {
                     // retrofit, okhttp, adapter, converter 중에서 에러가 난 상황
                     if(t instanceof IOException){
                         // 네트워크 오류 - header, body 형식이 맞지 않거나 통신이 불가능한 상황(WIFI미접속 등)
-                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
-                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
                     } else {
                         // 그 외 converter, baseurl, SSL등을 잘못 설정한 경우
-                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
-                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
                     }
                 } catch (RemoteException ignored) {
                 }
@@ -283,13 +286,13 @@ public class RelayClient {
                             resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_NONE, data);
                         } else {
                             // 행정기관에서 정상적인 데이터가 아닌 오류메세지를 보낼 경우
-                            Log.e(TAG, R.string.broker_error_resp_common_data + "(result: " + respData.result + ", code: "+ respData.code +")");
+                            Log.e(TAG, BROKER_ERROR_RESP_COMMON_DATA_STRING + "(result: " + respData.result + ", code: "+ respData.code +")");
                             resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_RESP_COMMON_DATA ,
-                                    R.string.broker_error_resp_common_data + "(result: " + respData.result + ", code: "+ respData.code +")", null);
+                                    BROKER_ERROR_RESP_COMMON_DATA_STRING + "(result: " + respData.result + ", code: "+ respData.code +")", null);
                         }
                     } catch (IOException | JSONException e) {
-                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + e.getMessage() + ")", e);
-                        resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + e.getMessage() + ")", null);
+                        Log.e(TAG,"err code : "+MobileEGovConstants.BROKER_ERROR_PROC_DATA+ BROKER_ERROR_PROC_DATA_STRING+ " (" + e.getMessage() + ")", e);
+                        resp = new BrokerResponse<>(MobileEGovConstants.BROKER_ERROR_PROC_DATA, BROKER_ERROR_PROC_DATA_STRING+ " (" + e.getMessage() + ")", null);
                     }
 
                     try {
@@ -301,9 +304,9 @@ public class RelayClient {
                 }
                 else {
                     // http 통신 실패
-                    Log.e(TAG, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                    Log.e(TAG, BROKER_ERROR_CONNECT_HTTP_STRING + " (HTTP 상태코드 : " + response.code() + ")");
                     try {
-                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_CONNECT_HTTP, R.string.broker_error_connect_http + " (HTTP 상태코드 : " + response.code() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_CONNECT_HTTP, BROKER_ERROR_CONNECT_HTTP_STRING + " (HTTP 상태코드 : " + response.code() + ")");
                     } catch (RemoteException ignored) {
                     }
                 }
@@ -316,13 +319,13 @@ public class RelayClient {
                     // retrofit, okhttp, adapter, converter 중에서 에러가 난 상황
                     if(t instanceof IOException){
                         // 네트워크 오류 - header, body 형식이 맞지 않거나 통신이 불가능한 상황(WIFI미접속 등)
-                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
-                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
                     } else {
                         // 그 외 converter, baseurl, SSL등을 잘못 설정한 경우
                         // TODO 상수를 추가하거나 별도의 에러 처리 작업이 필요할듯 합니다.
-                        Log.e(TAG, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
-                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, R.string.broker_error_porc_data +  "(" + t.getMessage() + ")");
+                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
+                        callback.onFailure(MobileEGovConstants.BROKER_ERROR_PROC_DATA, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
                     }
                 } catch (RemoteException ignore) {
                     // TODO 이부분은 개발자가 정의한 onFailure 에서 데이터를 처리하다가 RemoteException 을 줘야지 받을 수 있는 부분인데...

@@ -36,6 +36,8 @@ public class BrokerService extends Service {
     private final static String TAG = BrokerService.class.getSimpleName();
     private final static String SERVICE_ID_CERT_AUTH = "CMM_CERT_AUTH_MAM";
 
+    private final String BROKER_ERROR_PROC_DATA_STRING = "데이터 요청에 대한 응답데이터 처리 중 에러가 발생하였습니다.";
+
     public interface IServiceManager {
         SessionManager getSession();
         MonitorManager getMonitor();
@@ -200,7 +202,7 @@ public class BrokerService extends Service {
             queueBrokerTask.offer(task);
         } catch (JSONException e) { ;
             // README : 여기서 에러가 발생하면 중계 클라이언트 서비스를 제공할 수 없습니다. 즉, 앱이 종료되어야 합니다.
-            throw new RuntimeException(""+R.string.broker_error_porc_data + e);
+            throw new RuntimeException(""+BROKER_ERROR_PROC_DATA_STRING + e);
         }
         return START_STICKY;
     }
