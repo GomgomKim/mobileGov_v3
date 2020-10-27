@@ -39,10 +39,11 @@ public class AuthModel implements Parcelable {
     //
 }
 
-class MethodResponse implements Parcelable{
+@Deprecated
+class _MethodResponse implements Parcelable{
     Data data;
 
-    protected MethodResponse(Parcel in) {
+    protected _MethodResponse(Parcel in) {
     }
 
     public static final Creator<MethodResponse> CREATOR = new Creator<MethodResponse>() {

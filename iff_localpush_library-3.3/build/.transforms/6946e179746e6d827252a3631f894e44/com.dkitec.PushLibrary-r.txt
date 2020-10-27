@@ -1,0 +1,10 @@
+com.dkitec.PushLibrary
+drawable ic_launcher
+id menu_settings
+layout activity_main
+menu activity_main
+string app_name
+string hello_world
+string menu_settings
+style AppBaseTheme
+style AppTheme

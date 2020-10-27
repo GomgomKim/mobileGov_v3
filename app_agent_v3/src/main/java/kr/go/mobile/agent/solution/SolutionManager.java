@@ -7,6 +7,7 @@ import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 
+import kr.go.mobile.agent.v3.solution.DKI_LocalPushSolution;
 import kr.go.mobile.agent.v3.solution.EverSafeSolution;
 import kr.go.mobile.agent.v3.solution.MagicLineClientSolution;
 import kr.go.mobile.agent.v3.solution.SecuwizVPNSolution;
@@ -18,6 +19,7 @@ public class SolutionManager {
     public static String SSL_VPN = SecuwizVPNSolution.class.getCanonicalName();
     public static String EVER_SAFE = EverSafeSolution.class.getCanonicalName();
     public static String DREAM_SECURITY_GPKI_LOGIN = MagicLineClientSolution.class.getCanonicalName();
+    public static String PUSH = DKI_LocalPushSolution.class.getCanonicalName();
 
     static Map<String, Solution<?, ?>> managerMap = new HashMap<>();
 

@@ -19,18 +19,18 @@ import java.util.Map;
 
 public class GenerateHeaders {
 
-    Context context;
     Map<String, String> defaultHeaders;
     URL url;
     String serviceId;
     String encodeAgentDetail;
+    @Deprecated
     String contentType;
+    @Deprecated
     int contentLength;
 
     private final static String TAG = GenerateHeaders.class.getSimpleName();
 
-    public GenerateHeaders(Context context){
-        this.context = context;
+    public GenerateHeaders(){
         this.defaultHeaders = new HashMap<>();
     }
 
@@ -42,11 +42,14 @@ public class GenerateHeaders {
         this.serviceId = serviceId;
     }
 
+    @Deprecated
     public void setContentType(String contentType) {
-        this.contentType = contentType;
+        //this.contentType = contentType;
     }
 
-    public void setAgentDetail(String userId, String officeName, String officeCode) throws UnsupportedEncodingException, PackageManager.NameNotFoundException {
+    public void setAgentDetail(Context context, String userId, String officeName, String officeCode)
+            throws UnsupportedEncodingException, PackageManager.NameNotFoundException {
+
         String agentDetail = getAgentDetail(context, userId, officeName, officeCode);
         encodeAgentDetail = URLEncoder.encode(agentDetail, "UTF-8");
     }
@@ -69,13 +72,13 @@ public class GenerateHeaders {
     public Map<String, String> getHeaders() {
         Map<String, String> headers = initDefaultHeader();
 
-        if(this.contentType == null) {
-            throw new IllegalArgumentException("Content-Type 이 지정되어 있지 않습니다.");
-        } else {
-            headers.put("Content-Type", this.contentType);
-        }
+//        if(this.contentType == null || encodeAgentDetail == null) {
+//            throw new IllegalArgumentException("Content-Type 이 지정되지 않거나 Agent-Detail 값이 존재하지 않습니다.");
+//        } else {
+//            headers.put("Content-Type", this.contentType);
+//        }
 
-        headers.put("Content-Length", Integer.toString(contentLength));
+        //headers.put("Content-Length", Integer.toString(contentLength));
 
         return headers;
     }

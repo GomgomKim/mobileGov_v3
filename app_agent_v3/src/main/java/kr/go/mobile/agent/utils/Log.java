@@ -6,19 +6,21 @@ import java.util.Map;
 
 public class Log {
 	
-	public static boolean DEBUGABLED = false;
+	public static boolean DEBUG = false;
+	public static boolean TC = true;
+	public static boolean TIMESTAMP = true;
 
 	public static void v(String tag, String msg) {
-		if (DEBUGABLED)
+		if (DEBUG)
 			android.util.Log.v(tag, msg);
 	}
 
 	public static void d(String tag, String msg) {
-		if (DEBUGABLED)
+		if (DEBUG)
 			android.util.Log.d(tag, msg);
 	}
 	public static void d(String tag, String msg,Throwable t) {
-		if (DEBUGABLED)
+		if (DEBUG)
 			android.util.Log.d(tag, msg, t);
 	}
 	
@@ -44,8 +46,15 @@ public class Log {
 		android.util.Log.e(tag, msg, t);
 	}
 
+	//// 개발 도구
+	public static void TC(String message) {
+		if (TC)
+			android.util.Log.i("@___TEST_CASE___@", message);
+	}
+
 	static Map<String, Long> tmp = new HashMap<>();
 	public static void timeStamp(String tag) {
+		if(TIMESTAMP) {
 		if (tmp.containsKey(tag)) {
 			Long now = System.currentTimeMillis();
 			Long old = tmp.remove(tag);
@@ -53,6 +62,7 @@ public class Log {
 		} else {
 			tmp.put(tag, System.currentTimeMillis());
 		}
+	}
 	}
 
 	public static void concurrency(Thread t, String message) {

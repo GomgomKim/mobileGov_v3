@@ -22,15 +22,17 @@ public abstract class Solution<IN, OUT> {
         _FAIL,      // 처리 실패(에러)
         _TIMEOUT,   // 응답 없음
         _CANCEL,    // 사용자 취소
-        _INVALID    // 실행 실패(환경변수 오류)
+        _INVALID,   // 실행 실패(환경변수 오류)
+        _WAIT
     }
 
     public static class Result<OUT> {
         public OUT out;
         RESULT_CODE code;
         String errorMessage;
-        public Result(RESULT_CODE code) {
-            this(code, null);
+        public Result(OUT out) {
+            this(RESULT_CODE._OK, null);
+            this.out = out;
         }
         public Result(RESULT_CODE code, String errorMessage) {
             this.code = code;
@@ -41,6 +43,10 @@ public abstract class Solution<IN, OUT> {
             return this.code;
         }
         public String getErrorMessage() { return this.errorMessage; }
+
+        public boolean waitResult() {
+            return code == RESULT_CODE._WAIT;
+        }
     }
 
     public static class SolutionRuntimeException extends RuntimeException {
@@ -118,7 +124,7 @@ public abstract class Solution<IN, OUT> {
 
         try {
             Result<OUT> result = process(context, in);
-            if (result == null) {
+            if (result.waitResult()) {
                 waitQueue = new ArrayBlockingQueue<>(1);
                 // result 가 null 이면 응답을 기다려야함.
                 result = waitQueue.take();
@@ -182,13 +188,15 @@ public abstract class Solution<IN, OUT> {
     }
 
     public void finish() {
-        if (processThread != null) {
-            processThread.interrupt();
-            processThread = null;
+        if (isOperation) {
+            if (processThread != null) {
+                processThread.interrupt();
+                processThread = null;
+            }
+            isOperation = false;
+            isCancel = false;
+            Log.d(getClass().getSimpleName(), "------------- finish --------------");
         }
-        isOperation = false;
-        isCancel = false;
-        Log.d(getClass().getSimpleName(), "------------- finish --------------");
     }
 
     public void cancel() {

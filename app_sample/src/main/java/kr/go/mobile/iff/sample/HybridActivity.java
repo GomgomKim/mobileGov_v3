@@ -42,7 +42,7 @@ public class HybridActivity extends NewMDHybridActivity {
 		addService("DOCViewPlugin", DOCViewPlugin.class.getName());
 		
 //		setLoadableUrl("javascript:var cn='"+ cn +"'; var ou='" + ou + "'; dn='" + dn +"';dvhost='10.180.22.77:65535'");
-		setLoadableUrl("javascript:var cn='"+ cn +"'; var ou='" + ou + "'; dn='" + dn +"';dvhost='10.180.12.216:65535'");
+		setLoadableUrl("javascript:var cn=\"+ cn +\"; var ou=\" + ou + \"; dn=\" + dn +\";dvhost='10.180.12.216:65535'");
 		
 		Log.i("@@@", "하이브리드 앱 메인 페이지 호출");
         setLoadableUrl("file:///android_asset/www/index.html");

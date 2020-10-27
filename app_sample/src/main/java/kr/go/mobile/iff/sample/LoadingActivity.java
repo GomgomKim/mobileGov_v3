@@ -171,7 +171,7 @@ public class LoadingActivity extends AppCompatActivity {
                         Toast.makeText(getBaseContext(), sb.toString(), Toast.LENGTH_LONG).show();
                     }
                 });
-                //lib.request(sbIntent);
+//                lib.request(sbIntent);
 
                 // 다음 화면으로 전환.
                 Intent _intent = new Intent(LoadingActivity.this, MainActivity.class);

@@ -80,6 +80,8 @@ class ServBrokTask extends AsyncTask<ServBrokTask.ServBrokData, Void, String> {
 		Log.d(TAG, "ServiceBroker Doing ...");
 		ServBrokData realData = data[0];
 
+		Log.d(TAG, "service id : " + realData.serviceID);
+
 		try {
 			if (ServiceBrokerLib.SERVICE_DOWNLOAD.compareToIgnoreCase(realData.serviceID) == 0) {
 				Log.w(TAG, "** Download Service is deprecate.");
@@ -91,8 +93,10 @@ class ServBrokTask extends AsyncTask<ServBrokTask.ServBrokData, Void, String> {
 				Log.d(TAG, "parameter : " + realData.parameter);
 				Log.d(TAG, "FileName : " + realData.fileName);
 				Log.d(TAG, "FilePath : " + realData.filePath);
+				Log.d(TAG, "header : " + realData.header);
+				Log.d(TAG, "serviceCallBack : " + realData.mServiceCallBack);
 				String result = "";
-				//result = mService.uploadWithCB(header, E2ESetting.FILE_UPLOAD_SERVICE, filePath, parameter, mServiceCallBack);
+				result = mService.uploadWithCB(realData.header, E2ESetting.FILE_UPLOAD_SERVICE, realData.filePath, realData.parameter, realData.mServiceCallBack);
 				Log.d(TAG, "Result : " + result);
 			} else if (ServiceBrokerLib.SERVICE_UPLOAD2.compareToIgnoreCase(realData.serviceID) == 0) {
 				Log.w(TAG, "** (async) Upload Service is deprecate.");

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="kr.go.mobile.common">
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="kr.go.mobile.permission.ACCESS_RELAY_SERVICE"/>
+    <application>
+        <activity
+            android:name="kr.go.mobile.common.v3.document.DefaultDocumentActivity"
+            android:windowSoftInputMode="adjustUnspecified|stateHidden|adjustResize"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"/>
+    </application>
+</manifest>

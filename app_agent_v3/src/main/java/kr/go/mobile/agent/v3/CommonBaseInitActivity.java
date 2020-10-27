@@ -30,9 +30,10 @@ import kr.go.mobile.agent.service.monitor.ThreatDetection;
 import kr.go.mobile.agent.service.session.UserSigned;
 import kr.go.mobile.agent.solution.SolutionManager;
 import kr.go.mobile.agent.utils.Log;
-import kr.go.mobile.common.v3.MobileEGovConstants;
+import kr.go.mobile.common.v3.CommonBasedConstants;
 
 import kr.go.mobile.mobp.iff.R;
+import kr.go.mobile.support.v2.ConvertUtils;
 
 /**
  * 행정앱이 공통기반 라이브러리를 통해서 공통기반 서비스를 초기화할때 호출되는 Activity 로, 다음과 같은 기능을 수행한다.<br>
@@ -51,14 +52,16 @@ public class CommonBaseInitActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 100;
 
     private static final int STATUS_NONE = 8 >> 4; // 0000
+    @Deprecated
     private static final int STATUS_INSTALLED_SOLUTION_APP = 8 >> 3; // 0001
     private static final int STATUS_SAFE_DEVICE = 8 >> 2; // 0010
     private static final int STATUS_INTEGRITY_APP = 8 >> 1; // 0100
     private static final int STATUS_ENABLED_SERVICE = /*8 >> 0*/ 8 ; // 1000
-    private static final int STATUS_READY = STATUS_INSTALLED_SOLUTION_APP | STATUS_SAFE_DEVICE | STATUS_INTEGRITY_APP | STATUS_ENABLED_SERVICE; // 1111
+    private static final int STATUS_READY = STATUS_SAFE_DEVICE | STATUS_INTEGRITY_APP | STATUS_ENABLED_SERVICE; // 1110
 
     public interface LocalService {
         // 행정앱으로부터 전달받은 정보를 설정한다.
+        String[] checkSecureSolution();
         void executeSolution(Bundle extra);
         void clearToken();
         void setStopActivity();
@@ -66,8 +69,8 @@ public class CommonBaseInitActivity extends AppCompatActivity {
         Bundle getUserBundle();
         void validSigned() throws SessionManager.SessionException;
 
+
         void takeReadyLocalService(TakeListener<Bundle> listener, Bundle extra);
-        void takeInstalledApps(TakeListener<String[]> listener);
         void takeVerifiedAgent(TakeListener<IntegrityConfirm.STATUS> listener);
         void takeThreatsEnv(TakeListener<ThreatDetection.STATUS> listener);
         void takeGenerateSigned(TakeListener<UserSigned.STATUS> listener, Context context);
@@ -87,8 +90,6 @@ public class CommonBaseInitActivity extends AppCompatActivity {
     }
 
     boolean aboveAPIVer3;
-    boolean showFinishDialog;
-
     LocalService localService;
     ProgressDialog dialogProgress;
     AtomicInteger status = new AtomicInteger(STATUS_NONE);
@@ -101,40 +102,63 @@ public class CommonBaseInitActivity extends AppCompatActivity {
         setContentView(R.layout.activity_mobile_gov_loading);
 
         Bundle extraData = getIntent().getExtras();
-        aboveAPIVer3 = Objects.equals(getIntent().getAction(), MobileEGovConstants.ACTION_LAUNCH_SECURITY_AGENT);
+        aboveAPIVer3 = Objects.equals(getIntent().getAction(), CommonBasedConstants.ACTION_LAUNCH_SECURITY_AGENT);
         try {
-            // 행정앱에서 공통기반 서비스 초기화 요청시 에러 다이얼로그를 비활성화 하기 위해서는 flagShowDialog 갓이 false 값을 가져야 한다.
-            showFinishDialog = extraData.getBoolean("extra_show_dialog", !aboveAPIVer3 /*FIXME API 3.x 이상일 경우 기본적으로 보안에이전트에서 다이얼로그를 생성하지 않는다.*/);
             String apiVersion = validAdminPackageInfo(extraData);
             displayVersion(apiVersion);
         } catch (NullPointerException e) {
             String message = e.getMessage();
             Log.e(TAG, "필수정보 누락 : " + message);
-            showFinishDialog(MobileEGovConstants.RESULT_AGENT_INVALID, "접근 에러", message);
+            showFinishDialog(CommonBasedConstants.RESULT_AGENT_INVALID, "접근 에러", message);
             return;
         }
 
-        // Agent 가 사용하는 퍼미션 확인 / 퍼미션이 없을 경우 요청시도
-        if (grantedPermission(true)) {
-            localService = (LocalService) getApplication();
+        localService = (LocalService) getApplication();
+
+        // 필수앱(보안 솔루션 앱) 설치 유무 체크
+        String[] ret = localService.checkSecureSolution();
+
+        if(ret.length == 0) {
+            Log.i(TAG, "필수 앱 체크 상태 - 정상");
+            //doNextStep(STATUS_INSTALLED_SOLUTION_APP);
             localService.takeReadyLocalService(new TakeListener<Bundle>() {
                 public void onTake(Bundle takeObject) {
-                    Log.i(TAG, "로컬 서비스 준비 상태 - 정상");
+                    Log.TC("서비스 바인딩 완료");
                     localService.executeSolution(takeObject);
                     doNextStep(STATUS_ENABLED_SERVICE);
                 }
             }, extraData);
 
-            checkStatus();
+            // Agent 가 사용하는 퍼미션 확인 / 퍼미션이 없을 경우 요청시도
+            if (grantedPermission(true)) {
+                checkStatus();
+            }
+            // else { 권한이 없을 경우 권한 요청을 하였기때문에 요청처리 이후 onRequestPermissionsResult() 에서 처리함. }
+        } else {
+            int result;
+            String realMessage = ret[1];
+            Log.TC(realMessage);
+            switch (ret[0]) {
+                case "REMOVE":
+                    result = CommonBasedConstants.RESULT_AGENT_EXIST_LICENSE_EXPIRED_PACKAGE;
+                    break;
+                case "INSTALL":
+                    result = CommonBasedConstants.RESULT_AGENT_INSTALL_REQUIRED_PACKAGE;
+                    break;
+                case "ERROR":
+                    result = CommonBasedConstants.RESULT_AGENT_INTERNAL_ERROR;
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + ret[0]);
+            }
+            showFinishDialog(result, "필수앱 검사 에러", realMessage, true);
         }
-        // else { 권한이 없을 경우 권한 요청을 하였기때문에 요청처리 이후 onRequestPermissionsResult() 에서 처리함. }
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        showFinishDialog = true;
-        showFinishDialog(MobileEGovConstants.RESULT_AGENT_INVALID,
+        showFinishDialog(CommonBasedConstants.RESULT_AGENT_INVALID,
                 "보안 에이전트 종료",
                 intent.getStringExtra("message"), true);
     }
@@ -171,33 +195,7 @@ public class CommonBaseInitActivity extends AppCompatActivity {
         // 보안 검사 중 다이얼로그 보이기.
         showProgressDialog(getString(R.string.security_msg));
 
-        // 필수앱(보안 솔루션 앱) 설치 유무 체크
-        localService.takeInstalledApps(new TakeListener<String[]>() {
-            @Override
-            public void onTake(String[] takeObject) {
-                if(takeObject.length == 0) {
-                    Log.i(TAG, "필수 앱 체크 상태 - 정상");
-                    doNextStep(STATUS_INSTALLED_SOLUTION_APP);
-                } else {
-                    int result;
-                    String realMessage = takeObject[1];
-                    switch (takeObject[0]) {
-                        case "REMOVE":
-                            result = MobileEGovConstants.RESULT_AGENT_EXIST_LICENSE_EXPIRED_PACKAGE;
-                            break;
-                        case "INSTALL":
-                            result = MobileEGovConstants.RESULT_AGENT_INSTALL_REQUIRED_PACKAGE;
-                            break;
-                        case "ERROR":
-                            result = MobileEGovConstants.RESULT_AGENT_INTERNAL_ERROR;
-                            break;
-                        default:
-                            throw new IllegalStateException("Unexpected value: " + takeObject[0]);
-                    }
-                    showFinishDialog(result, "필수앱 검사 에러", realMessage);
-                }
-            }
-        });
+
 
         // 무결성 검증 확인
         localService.takeVerifiedAgent(new TakeListener<IntegrityConfirm.STATUS>() {
@@ -210,7 +208,7 @@ public class CommonBaseInitActivity extends AppCompatActivity {
                         break;
                     case _NOT_VERIFIED:
                     default:
-                        showFinishDialog(MobileEGovConstants.RESULT_AGENT_UNSAFE_DEVICE,
+                        showFinishDialog(CommonBasedConstants.RESULT_AGENT_UNSAFE_DEVICE,
                                 "무결성 검증 에러",
                                 "보안 에이전트 무결성 검증에 실패하였습니다. (사유 : " + localService.getErrorMessage(1) + ")");
                 }
@@ -235,6 +233,9 @@ public class CommonBaseInitActivity extends AppCompatActivity {
                     case _ROOTING_DEVICE:
                         threatMessage = "루팅된 단말입니다. 보안을 위하여 루팅 단말에서 실행할 수 없습니다.";
                         break;
+                    case _PERMISSION_NOT_GRANTED:
+                        threatMessage = "권한 허용을 적용하기 위하여 앱을 다시 실행하시기 바랍니다.";
+                        break;
                     case _ERROR:
                         threatMessage = "단말 보안 솔루션 연동 중 에러가 발생하였습니다.";
                         break;
@@ -245,7 +246,7 @@ public class CommonBaseInitActivity extends AppCompatActivity {
                     Log.i(TAG, "단말 보안 상태 - 정상");
                     doNextStep(STATUS_SAFE_DEVICE);
                 } else {
-                    showFinishDialog(MobileEGovConstants.RESULT_AGENT_UNSAFE_DEVICE,
+                    showFinishDialog(CommonBasedConstants.RESULT_AGENT_UNSAFE_DEVICE,
                             "단말 보안 상태",
                             threatMessage);
                 }
@@ -265,7 +266,8 @@ public class CommonBaseInitActivity extends AppCompatActivity {
         }
 
         if (aboveAPIVer3) {
-            tmp = extraData.getString("req_id_base64") ;
+            // TODO app_id, app_label, app_version_name 추가 확인
+            tmp = extraData.getString("req_id") ;
             if (tmp == null || tmp.equals("")) {
                 throw new NullPointerException("행정앱 고유정보가 존재하지 않습니다.");
             }
@@ -283,8 +285,8 @@ public class CommonBaseInitActivity extends AppCompatActivity {
                 throw new NullPointerException("행정앱 고유정보가 존재하지 않습니다.");
             }
             // 3.x 타입으로 변경
-            extraData.putString("req_id_base64", tmp);
             extraData.remove("extra_package");
+            extraData.putString("req_id", tmp);
             Log.d(TAG, "- 초기화 요청 ID  : " + tmp);
 
             tmp = "2.x.x";
@@ -315,9 +317,10 @@ public class CommonBaseInitActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantedPermission(false)) {
+                // TODO 종료되네 ..
                 checkStatus();
             } else {
-                showFinishDialog(MobileEGovConstants.RESULT_AGENT_INVALID,
+                showFinishDialog(CommonBasedConstants.RESULT_AGENT_INVALID,
                         getString(R.string.denied_permission_title),
                         getString(R.string.denied_permission_details));
             }
@@ -331,8 +334,6 @@ public class CommonBaseInitActivity extends AppCompatActivity {
     }
 
     void doNextStep(int newStatus) {
-        Log.call();
-
         if (newStatus > -1) {
             status.addAndGet(newStatus);
         }
@@ -383,7 +384,7 @@ public class CommonBaseInitActivity extends AppCompatActivity {
                                         message = "로그인 정보가 존재하지 않습니다.";
                                     }
                                     Log.e(TAG, "보안 네트워크 연결 실패 : " + message);
-                                    showFinishDialog(MobileEGovConstants.RESULT_AGENT_SOLUTION_ERROR,
+                                    showFinishDialog(CommonBasedConstants.RESULT_AGENT_SOLUTION_ERROR,
                                             "보안 네트워크 연결 실패",
                                             message);
                                     break;
@@ -404,12 +405,13 @@ public class CommonBaseInitActivity extends AppCompatActivity {
                                     doNextStep();
                                     break;
                                 case _USER_CANCEL:
-                                    showFinishDialog(MobileEGovConstants.RESULT_USER_CANCELED,
+                                    showFinishDialog(CommonBasedConstants.RESULT_USER_CANCELED,
                                             "인증서 로그인 취소",
                                             "사용자에 의하여 인증서 로그인이 취소되었습니다.");
                                     break;
+
                                 case _ERROR:
-                                    showFinishDialog(MobileEGovConstants.RESULT_AGENT_SOLUTION_ERROR,
+                                    showFinishDialog(CommonBasedConstants.RESULT_AGENT_SOLUTION_ERROR,
                                             "인증서 로그인 에러",
                                             "인증서 로그인 솔루션 연계 중 에러가 발생하였습니다.");
                                     break;
@@ -428,20 +430,17 @@ public class CommonBaseInitActivity extends AppCompatActivity {
                             Log.timeStamp("certification-confirm");
                             Log.i(TAG, "인증 세션 상태 - 유효");
                             Bundle extra = localService.getUserBundle();
-                            // FIXME 공통기반 라이브러리 2.x 지원. 2.x 버전을 지원하지 않을 경우 삭제.
+
+                            // 공통기반 라이브러리 2.x 지원. 2.x 버전을 지원하지 않을 경우 삭제.
                             if (!aboveAPIVer3) {
-                                extra.putString("userId", extra.getString(MobileEGovConstants.EXTRA_KEY_USER_ID));
-                                extra.putString("dn", extra.getString(MobileEGovConstants.EXTRA_KEY_DN));
-                                extra.remove(MobileEGovConstants.EXTRA_KEY_USER_ID);
-                                extra.remove(MobileEGovConstants.EXTRA_KEY_DN);
+                                extra = ConvertUtils.convertResult(extra);
                             }
                             ////////////////////////////////////////////////////////////////////////
                             localService.monitorPackage();
-                            finishResult(MobileEGovConstants.RESULT_OK, extra);
+                            finishResult(CommonBasedConstants.RESULT_OK, extra);
                         } else {
-                            showFinishDialog(MobileEGovConstants.RESULT_AGENT_FAILURE_USER_AUTHENTICATION,
-                                    "사용자 인증 실패",
-                                    takeObject);
+                            showFinishDialog(CommonBasedConstants.RESULT_AGENT_FAILURE_USER_AUTHENTICATION,
+                                    "사용자 인증 실패", takeObject);
                         }
                     }
                 });
@@ -483,37 +482,32 @@ public class CommonBaseInitActivity extends AppCompatActivity {
     }
 
     public void showFinishDialog(final int result_code, final String title, final String message, final boolean finishApp) {
-        if (showFinishDialog) {
-            hideProgressDialog();
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(CommonBaseInitActivity.this);
-                    builder.setTitle(title);
-                    builder.setMessage(message);
-                    builder.setCancelable(false);
-                    builder.setNeutralButton(getString(android.R.string.ok), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
+        hideProgressDialog();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(CommonBaseInitActivity.this);
+                builder.setTitle(title);
+                builder.setMessage(message);
+                builder.setCancelable(false);
+                builder.setNeutralButton(getString(android.R.string.ok), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        moveTaskToBack(true);
+                        finishResult(result_code, null);
+
+                        if (localService != null) {
                             localService.clearSession();
-                            moveTaskToBack(true);
-                            finishResult(result_code, null);
-                            if (finishApp) {
-                                System.exit(0);
-                            }
                         }
-                    });
-                    builder.show();
-                }
-            });
-        } else {
-            localService.clearSession();
-            finishResult(result_code, null);
-            if (finishApp) {
-                moveTaskToBack(true);
-                System.exit(0);
+                        if (finishApp) {
+                            moveTaskToBack(true);
+                            System.exit(0);
+                        }
+                    }
+                });
+                builder.show();
             }
-        }
+        });
     }
 
     void finishResult(int result_code, Bundle extra) {

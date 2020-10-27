@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 사용자 정의 함수 테스트앱(Hybrid)</title>
+    <script src="../js/jquery-latest.min.js"></script>
+    <script src="../js/CommonBaseAdapter.3.0.0.js"></script>
+    
+    <script type="text/javascript">
+        function echo(message) {
+            // 사용자 플러그인 호출
+            CommonBaseAPI.exec(
+                // 사용자 함수 명
+                'CustomService.echo',
+                // 사용자 함수 호출 성공
+                function(result) {
+                    console.log('result=' + result);
+                    $("#result").html("result = " + result);
+                },
+                // 사용자 함수 호출 실패
+                function(error) {
+                    console.log('error=' + error);
+                    $("#result").html("error= " + error);
+                },
+                // 사용자 함수 파라미터
+                message
+            );
+        }
+
+        function getMyMessage() {
+            // 사용자 플러그인 호출
+            CommonBaseAPI.exec(
+                // 사용자 함수 명
+                'CustomService.getMyMessage',
+                // 사용자 함수 호출 성공
+                function(result) {
+                    console.log('result=' + result);
+                    $("#result").html("result = " + result);
+                },
+                // 사용자 함수 호출 실패
+                function(error) {
+                    console.log('error=' + error);
+                    $("#result").html("error= " + error);
+                },
+                // 사용자 함수 파라미터
+                {
+                    'message':'hello'
+                }
+            );
+        }
+        function toJsonMyMessage() {
+            // 사용자 플러그인 호출
+            CommonBaseAPI.exec(
+                // 사용자 함수 명
+                'CustomService.toJsonMyMessage',
+                // 사용자 함수 호출 성공
+                function(result) {
+                    console.log('result=' + result);
+                    $("#result").html("result = " + result);
+                },
+                // 사용자 함수 호출 실패
+                function(error) {
+                    console.log('error=' + error);
+                    $("#result").html("error= " + error);
+                },
+                // 사용자 함수 파라미터
+                {
+                    'message':'hello'
+                }
+            );
+        }
+    </script>
+
+</head>
+<style>
+    .button {
+        width: 100%;
+        display: block;
+        border: 1px solid transparent;
+        padding: 13px 32px;
+        cursor: pointer;
+        margin-top: 10px;
+        border-radius: .25rem;
+        font-family: "Lucica Console", Monaco, monospace;
+        margin-bottom: 10px;
+    }
+</style>
+<body style="background-color:white;">
+
+<h1>가상화 테스트앱(Hybrid)</h1>
+<h2>User Plugin</h2>
+<br>
+
+<center>
+    <p><button class="button" onclick="echo('custom service')">CustomService.echo('custom service')</button></p>
+    <p><button class="button" onclick="echo('this service')">CustomService.echo('this service')</button></p>
+    <p><button class="button" onclick="echo('hello common-based')">CustomService.echo('hello common-based')</button></p>
+    <p><button class="button" onclick="getMyMessage()">CustomService.getMyMessage('{message='hello'}')</button></p>
+    <p><button class="button" onclick="toJsonMyMessage()">CustomService.toJsonMyMessage('{'message':'hello'}')</button></p>
+</center>
+<h5 id="result"></h5>
+</body>
+</html>

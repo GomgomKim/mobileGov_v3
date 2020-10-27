@@ -207,7 +207,7 @@ public class ServiceBrokerLib {
 	public static final String SERVICE_DOCUMENT = "document";
 	@Deprecated
 	public static final String ZIP_LIST = "ziplist";
-	@Deprecated
+//	@Deprecated
 	public static final String SERVICE_UPLOAD = "upload";
 	// 기존 upload 방식용으로 처리할때 upload2사용
 	@Deprecated

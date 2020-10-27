@@ -1,0 +1,45 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 29
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    flavorDimensions "pkgInfo"
+    productFlavors {
+        tbed {
+            dimension "pkgInfo"
+            resValue "string", "iff_launcher_pkg", "kr.go.mobile.testbed.iff"
+            resValue "string", "iff_msm_url", "https://msmsub.mobile.go.kr/eversafe"
+            resValue "string", "common_based_version", "3.0.0"
+        }
+        oper {
+            dimension "pkgInfo"
+            resValue "string", "iff_launcher_pkg", "kr.go.mobile.mobp.iff"
+            resValue "string", "iff_msm_url", "https://msmmain.mobile.go.kr/eversafe"
+            resValue "string", "common_based_version", "3.0.0"
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(path: ':iff_msm_library-0.10.7')
+    implementation project(path: ':lib_constants_v3')
+    compileOnly 'com.github.chrisbanes:PhotoView:2.1.4'
+    compileOnly 'androidx.appcompat:appcompat:1.2.0'
+    compileOnly 'androidx.constraintlayout:constraintlayout:2.0.2'
+
+}

@@ -1,15 +1,14 @@
 package kr.go.mobile.agent.service.session;
 
 import android.content.Context;
-import android.util.Log;
 
 import kr.go.mobile.agent.solution.Solution;
 import kr.go.mobile.agent.solution.SolutionManager;
+import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.mobp.iff.R;
 
 public class UserSigned {
     private static final String TAG = UserSigned.class.getSimpleName();
-
 
     public enum STATUS {
         _OK,
@@ -100,6 +99,7 @@ public class UserSigned {
             this.mOfficeName = signed.mOfficeName;
             this.mUserDN = signed.mUserDN;
             this.mUserID = signed.mUserID;
+            Log.TC("사용자 서명 등록 성공");
             signed.clear();
         } else {
             throw new RuntimeException("UserSigned 타입이 서명 값만 존재해야 합니다.");
@@ -108,6 +108,10 @@ public class UserSigned {
 
     private boolean onlySigned() {
         return certificationLoginSolution == null;
+    }
+
+    public void stopLoginActivity() {
+        certificationLoginSolution.finish();
     }
 
     public void clear() {

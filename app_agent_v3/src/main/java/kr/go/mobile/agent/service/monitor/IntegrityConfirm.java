@@ -32,9 +32,9 @@ public class IntegrityConfirm {
         this.agentToken = null;
     }
 
-    public void confirm() {
+    public void confirm(Context context) {
         status = STATUS._UNKNOWN;
-        integritySolution.execute(null);
+        integritySolution.execute(context);
     }
 
     public void setConfirm(String token) {
@@ -66,7 +66,6 @@ public class IntegrityConfirm {
     }
 
     public void clear() {
-        Log.call();
         agentToken = null;
         anotherToken = null;
     }

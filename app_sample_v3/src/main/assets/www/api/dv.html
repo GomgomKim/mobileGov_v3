@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 문서뷰어 테스트앱(Hybrid)</title>
+
+    <script src="../js/jquery-latest.min.js"></script>
+    <script src="../js/CommonBaseAdapter.3.0.0.js"></script>
+
+    <script type="text/javascript">
+        var dvhost = "10.180.22.77:65535";
+        function runDv(idx) {
+            var file_name;
+            var file_url;
+
+            switch(idx) {
+                case 1:
+                    file_name = 'sample.hwp';
+                    file_url = 'http://' + dvhost + '/MOI_API/file/sample.hwp';
+                    file_url = encodeURIComponent(file_url);
+                    break;
+
+                case 2:
+                    file_name = 'sample_1p.hwp';
+                    file_url = 'http://' + dvhost + '/file/sample_1p.hwp';
+                    file_url = encodeURIComponent(file_url);
+                    //file_url = encodeURIComponent(file_url);
+                    break;
+
+                case 3:
+                    file_name = 'sample.pdf';
+                    file_url = 'http://' + dvhost + '/file/sample.pdf';
+                    file_url = encodeURIComponent(file_url);
+                    //file_url = encodeURIComponent(file_url);
+                    break;
+
+                case 4:
+                    file_name = 'sample.xlsx';
+                    file_url = 'http://' + dvhost + '/file/sample.xlsx';
+                    file_url = encodeURIComponent(file_url);
+                    //file_url = encodeURIComponent(file_url);
+                    break;
+
+                case 5:
+                    file_name = 'sample.jpg';
+                    file_url = 'http://' + dvhost + '/file/sample.jpg';
+                    file_url = encodeURIComponent(file_url);
+                    //file_url = encodeURIComponent(file_url);
+                    break;
+
+                case 6:
+                    file_name = 'sample.png';
+                    file_url = 'http://' + dvhost + '/file/sample.png';
+                    file_url = encodeURIComponent(file_url);
+                    //file_url = encodeURIComponent(file_url);
+                    break;
+
+                case 7:
+                    file_name = 'msit.hwp';
+                    //file_url = 'http://10.180.22.77:60524/mjsl/attach/BdItemUser.DownloadByUser?id=80767&subDN=cn%3D160%EA%B0%95%EB%B3%91%EC%A7%84002%2Cou%3Dpeople%2Cou%3D%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EC%A0%95%EB%B3%B4%ED%86%B5%EC%8B%A0%EB%B6%80%2Co%3DGovernment%20of%20Korea%2Cc%3DKR';
+                    //file_url = encodeURIComponent(file_url);
+                    //file_url = encodeURIComponent(file_url);
+                    file_url = 'http%253A%252F%252F10.180.22.77%253A60524%252Fmjsl%252Fattach%252FBdItemUser.DownloadByUser%253Fid%253D80772%2526subDN%253Dcn%25253D160%2525EA%2525B0%252595%2525EB%2525B3%252591%2525EC%2525A7%252584002%25252Cou%25253Dpeople%25252Cou%25253D%2525EA%2525B3%2525BC%2525ED%252595%252599%2525EA%2525B8%2525B0%2525EC%252588%2525A0%2525EC%2525A0%252595%2525EB%2525B3%2525B4%2525ED%252586%2525B5%2525EC%25258B%2525A0%2525EB%2525B6%252580%25252Co%25253DGovernment%252520of%252520Korea%25252Cc%25253DKR';
+
+                    break;
+
+                case 8:
+                    file_name = 'cloud onnara.png';
+                    //file_url = 'http%3A%2F%2F10.180.12.216%3A50620%2Fonnaramobile%2Frest%2FfileDownload%2F1535964322064.do%3FfilePath%3D4d5463304d5441774d487838616d49774d44467a5a573938664445334e44457a4d7a46386644673359575932596a42685a4445325a4751304e4751774e7a67325a6d55355a6a6330596d56685a6a466c66487a7274706e736e6f5130582b7573754f79456e44493049454a4a494f717a74657571714f7967684344746d59337273375167374a323036362b34374b65414c6e42755a3378384d5463304d5441774d413d3d%26a%3D1535964322064.png';
+                    file_url = 'http%3A%2F%2F10.180.22.77%3A60516%2Fonnaramobile%2Frest%2FfileDownload%2F1535964322064.do%3FfilePath%3D4d5463304d5441774d487838616d49774d44467a5a573938664445334e44457a4d7a46386644673359575932596a42685a4445325a4751304e4751774e7a67325a6d55355a6a6330596d56685a6a466c66487a7274706e736e6f5130582b7573754f79456e44493049454a4a494f717a74657571714f7967684344746d59337273375167374a323036362b34374b65414c6e42755a3378384d5463304d5441774d413d3d%26a%3D1535964322064.png';
+                    //file_url = encodeURIComponent(file_url);
+                    //file_url = encodeURIComponent(file_url);
+
+                    break;
+
+                default:
+                    file_name = '';
+                    file_url = '';
+            }
+
+            // 문서뷰어 요청
+            CommonBaseAPI.Broker.startDefaultDocumentView(
+                // 문서뷰어 요청 성공
+                function(result) {
+                    console.log('document viewer result=' + result);
+                },
+                // 문서뷰어 요청 실패
+                function(code, msg) {
+                    console.log('document viewer error=' + code + ', ' + msg);
+                },
+                // 문서뷰어로 요청할 문서 정보
+                file_url,
+                file_name,
+                ""
+            );
+        }
+
+
+
+    </script>
+</head>
+<style>
+    .button {
+        width: 100%;
+        display: block;
+        border: 1px solid transparent;
+        padding: 13px 32px;
+        cursor: pointer;
+        margin-top: 10px;
+        border-radius: .25rem;
+        font-family: "Lucica Console", Monaco, monospace;
+        margin-bottom: 10px;
+    }
+</style>
+<body style="background-color:white;" onload="onLoad()">
+<h1>가상화 테스트앱(Hybrid)</h1>
+<h2>Document Viewer API</h2>
+<br>
+
+<center>
+    <p>
+        <form action="javascript:runDv(1);" id="rundv">
+            <input type="submit">
+        </form>
+        <select name="opt" form="rundv">
+            <option value="01">sample hwp</option>
+            <option value="02">sample hwp</option>
+            <option value="03">sample hwp</option>
+            <option value="04">sample hwp</option>
+            <option value="05">sample hwp</option>
+        </select>
+    </p>
+    <p>
+
+        <button class="button" onclick="runDv(1)">sample.pdf</button>
+    </p>
+
+</center>
+
+</body>
+</html>

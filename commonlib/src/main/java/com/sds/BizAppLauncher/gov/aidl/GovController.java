@@ -227,7 +227,6 @@ public class GovController{
 
 	static void bindService(MoiApplication moiApplication) {
 		GovController.selfApplication = moiApplication;
-		Log.d("TOM@@@", "bind service");
 		bindService(moiApplication.getApplicationContext());
 	}
 

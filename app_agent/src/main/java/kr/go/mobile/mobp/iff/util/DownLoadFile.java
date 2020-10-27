@@ -1,6 +1,9 @@
 package kr.go.mobile.mobp.iff.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 import kr.go.mobile.iff.util.LogUtil;
@@ -14,12 +17,17 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.provider.MediaStore;
+import android.util.Log;
 
 import com.sds.mobile.servicebrokerLib.aidl.IRemoteServiceCallback;
 
@@ -29,7 +37,7 @@ public class DownLoadFile {
 
 	E2ESetting e2eSetting = new E2ESetting();
 	String file;
-	
+
 	public void downloadFile(final Context context, final String fileUrl, final boolean finish){
 		downProgress = new SingleProgressDialog(context);
 		if(downProgress!= null && !downProgress.isShowing()){
@@ -37,7 +45,7 @@ public class DownLoadFile {
 		}
 		
 		file = Environment.getExternalStorageDirectory().toString() + e2eSetting.getAppDownPath();
-		
+
 		final Handler handler = new Handler(Looper.getMainLooper()){
 			public void handleMessage(Message msg) {
 				Bundle bd = msg.getData();

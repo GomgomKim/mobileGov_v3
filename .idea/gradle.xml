@@ -16,6 +16,7 @@
             <option value="$PROJECT_DIR$/app_agent_v3" />
             <option value="$PROJECT_DIR$/app_sample" />
             <option value="$PROJECT_DIR$/app_sample_openapi" />
+            <option value="$PROJECT_DIR$/app_sample_v3" />
             <option value="$PROJECT_DIR$/commonlib" />
             <option value="$PROJECT_DIR$/docviewer" />
             <option value="$PROJECT_DIR$/docviewer_openapi" />
@@ -27,6 +28,8 @@
             <option value="$PROJECT_DIR$/iff_mam_library-testbed-1.2.1" />
             <option value="$PROJECT_DIR$/iff_msm_library-0.10.7" />
             <option value="$PROJECT_DIR$/lib_common_fake" />
+            <option value="$PROJECT_DIR$/lib_common_hybrid_v3" />
+            <option value="$PROJECT_DIR$/lib_common_v3" />
             <option value="$PROJECT_DIR$/lib_constants_v3" />
             <option value="$PROJECT_DIR$/lib_magic_line" />
             <option value="$PROJECT_DIR$/relayservicelib_v1" />

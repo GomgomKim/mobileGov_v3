@@ -17,6 +17,7 @@ public class ThreatDetection {
         _ROOTING_DEVICE,
         _EXIST_MALWARE,
         _DISABLED_REAL_TIME_SCAN,
+        _PERMISSION_NOT_GRANTED,
         _ERROR;
     }
 

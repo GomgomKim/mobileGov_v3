@@ -114,7 +114,7 @@ public class SecuwizVPNSolution extends Solution<String[], SecureNetwork.STATUS>
         Intent bindServiceInfo = new Intent(SECUWIZ_VPN_SERVICE_ACTION);
         bindServiceInfo.setPackage(SECUWIZ_VPN_PACKAGE_NAME);
         if (context.bindService(bindServiceInfo, this, Context.BIND_AUTO_CREATE)) {
-            Log.d(TAG, "SecuwizVPN 초기화");
+            Log.d(TAG, "SSL-VPN 초기화");
         } else {
             throw new RuntimeException("SecuwizVPN 서비스 바인딩을 시도할 수 없습니다.");
         }
@@ -132,7 +132,7 @@ public class SecuwizVPNSolution extends Solution<String[], SecureNetwork.STATUS>
             throw new RuntimeException("보안 네트워크 제어 중 에러가 발생하였습니다.", e);
         }
 
-        Log.d(TAG, "SecuwizVPN 서비스 연결 성공");
+        Log.d(TAG, "SSL-VPN 초기화 - 성공");
         status.getAndSet(STATUS_READY);
     }
 
@@ -199,6 +199,7 @@ public class SecuwizVPNSolution extends Solution<String[], SecureNetwork.STATUS>
                     case "0":
                         retryCount = 0;
                         Log.d(TAG, "STEP 1. Secuwiz SSL-VPN 연결시도 - 응답 대기");
+                        result = new Result<>(RESULT_CODE._WAIT, "");
                         break;
                     case "이미 로그인한 사용자입니다.":
                         try {
@@ -239,7 +240,7 @@ public class SecuwizVPNSolution extends Solution<String[], SecureNetwork.STATUS>
             case SECUWIZ_VPN_STATUS_CONNECTING:
                 Log.d(TAG, "Secuwiz SSL-VPN 연결 해제 시도");
                 serviceVPN.StopVpn();
-                return null;
+                return new Result<>(RESULT_CODE._WAIT, "");
             default:
                 throw new IllegalStateException("SecuwizVPNSolution.handleDisconnection() Unexpected value: " + serviceVPN.VpnStatus());
         }

@@ -10,6 +10,7 @@ android {
         versionName "1.2.0"
     }
 
+
     buildTypes {
         release {
             minifyEnabled false

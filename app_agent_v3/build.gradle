@@ -18,21 +18,25 @@ android {
         tbed  {
             dimension "pkgInfo"
             applicationId 'kr.go.mobile.testbed.iff'
-            resValue "string", "app_name_internal", "보안 Agent (테스트베드)"
+            resValue "string", "app_name", "보안 Agent (테스트베드)"
             resValue "string", "msmurl", "https://msmsub.mobile.go.kr/eversafe"
             resValue "string", "MagicMRSLicense", "KuVuz2EWNSIZv8VwoPq6n4z/8X1u2R/3zZ+cTUU/IRi2Q73Tqgm3Ur4dtbA09UptEK/FBc9zgQxSLqBiUGgPjK9NwaIzKXIKBTqXFyYh3cFY7SHSWRpb25aF51NMvK6TdH8Id/fMwlVksZtkm+4ukqQrwskcbDXx6wss4/szTTp5iYISkPiU+cnERgXGMigvR4FPEc7xJ1QZK7SmjrIEvNoiHFdTHDN3z5+77iSwXSTvq1SdBBnVu1Q0ceo85xySWOtlNQ+bycnfoWcN1msMkL76YBkDkco20bCRf/qPa246ecWGewmKNKPocYLHtqjU0m3xcw9WstbZ69UgvqmdVQ=="
             resValue "string", "SecuwaySSLServer", "5C28FEA13B82E72BD860B0526E34BDB53F399CE80938DF0D6AFF4A63AB5872B8" // https://125.60.62.70
-            resValue "string", "agenturl", "9C42F10F832A5232E71750ED77D9035FD3BBD9F647F001C0740C15CA3619EE34" // https://10.1.1.40:443/mois/rpc
+            resValue "string", "agenturl", "9C42F10F832A5232E71750ED77D9035F8BA346EC07C1968E10C3785786D19025" // https://10.1.1.40:443/mois/rpc/
+            resValue "string", "pushServer", "4749A4AD134FCD57BA1C0A156761BB4892DDBDF3716A6E4B8DCF2D0EAF64EB5F2CFAF7631E64333715E35DE84F91AA7E" // http://125.60.62.72:9001/pis/interface/
+            resValue "string", "pushAppId", "mc_iff_tb_agent"
 
         }
         oper {
             dimension "pkgInfo"
             applicationId 'kr.go.mobile.mobp.iff'
-            resValue "string", "app_name_internal", "보안 Agent"
+            resValue "string", "app_name", "보안 Agent"
             resValue "string", "msmurl", "https://msmmain.mobile.go.kr/eversafe"
             resValue "string", "MagicMRSLicense", "jtLZGsYaxzTUu/9e4DLjhUgkBWRMV89ChWnzbQIGV0IuW/VuS/dmh7rCqzVLi3Jjc9AnFfXc2XlMoedA2fSWQMs55nSI6SYwGqLDYWTwiSh0S1xxrk55ezV4ZPJVHfgsGpqKhK8IKiIf1fsk08aadGMcDNy75Sg3acDHYw0//ArUvrwShyvdRzIXO66aeGUqvFOVFA/4oMxWdSYr3hW+oKDN3KULm1Qs41+xUrPwOo+mqkQ1Jiq4BlwFI3LzApw/gCSFwhc+/0L4r3JqZYNtIbr2rlHahW89VtnpiJHDCOcN+Z1K5Ns+NlRsgYg7E3/AwvMRRuPc5uFY8ZYvJwrQDw=="
             resValue "string", "SecuwaySSLServer", "D1083212263556888AFBD519E5B3FCEC0537977F9A8BD7BF04B7E0177F934060" // https://125.60.21.160
-            resValue "string", "agenturl", "2C7C84B4BCE8AF6FEF2376D9AE984835D3BBD9F647F001C0740C15CA3619EE34" // https://10.1.1.30:443/mois/rpc
+            resValue "string", "agenturl", "2C7C84B4BCE8AF6FEF2376D9AE9848358BA346EC07C1968E10C3785786D19025" // https://10.1.1.30:443/mois/rpc/
+            resValue "string", "pushServer", "FFE645B51A13BC9B02D2D5B57620C16F04C902135AEF25AC5891450D650075E0F804ABFC077CE30A4BB3643F45D17AB3"  // http://ilpush.mcenter.go.kr:9001/pis/interface/
+            resValue "string", "pushAppId", "mc_iff_agent"
         }
     }
 
@@ -81,6 +85,8 @@ dependencies {
     implementation project(path: ':lib_magic_line')
     implementation project(path: ':iff_msm_library-0.10.7')
     implementation project(path: ':NFilterKeyPad')
+    implementation project(path: ':iff_localpush_library-3.3')
+    compile 'com.squareup.okhttp3:logging-interceptor:3.9.1'
     compileOnly 'org.jetbrains:annotations-java5:15.0'
 //    compileOnly("org.jetbrains:annotations:13.0")
 //    testCompileOnly("org.jetbrains:annotations:13.0")
@@ -93,4 +99,8 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
     // retrofit - using string
     implementation 'com.squareup.retrofit2:converter-scalars:2.1.0'
+
+
 }
+
+

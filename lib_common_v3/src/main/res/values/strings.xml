@@ -1,0 +1,29 @@
+<resources>
+    <string name="iff_not_installed_required_package">필수앱이 설치되어 있지 않습니다.</string>
+    <string name="iff_guide_not_installed_and_required_agent">보안 Agent 설치 후 다시 실행하시기 바랍니다.</string>
+    <string name="iff_button_close">닫기</string>
+    <string name="iff_denied_permission">보안 Agent 사용 권한이 없습니다.</string>
+    <string name="iff_guide_this_app_reinstall">해당 앱을 재설치한 후 재실행해주시기 바랍니다. 재설치 후에도 실행되지 않을 경우 지원센터에 문의바랍니다.</string>
+    <string name="iff_not_ready_service">공통기반 서비스가 연결되지 않습니다.</string>
+    <string name="iff_guide_this_app_restart">해당 앱을 재실행해주시기 바랍니다. 이후 실행되지 않을 경우 지원센터에 문의바랍니다.</string>
+    <string name="iff_guide_check_network">단말 네트워크 상태를 확인 후 앱을 재실행해주시기 바랍니다. 이후 실행되지 않을 경우 지원센터에 문의바랍니다.</string>
+    <string name="iff_disconnection_agent">보안 Agent 서비스 연결 에러</string>
+
+    <string name="title_activity_dummy_loading">DummyLoadingActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="iff_guide_user_cancel">사용자에 의하여 취소되었습니다.</string>
+    <string name="iff_uncaught_exception">알수없는 에러발생</string>
+    <string name="iff_uncaught_exception_message">개발자에게 문의하시기 바랍니다.</string>
+    <string name="cb_dv_msg_converting">변환 중입니다.</string>
+    <string name="cb_dv_runtime_error_msg">문서뷰어를 실행할 수 없습니다. 개발사 또는 지원센터에 문의하시기 바랍니다.</string>
+    <string name="cb_dv_msg_finish_toast">한번 더 누르면 문서뷰어가 종료됩니다.</string>
+    <string name="cb_dv_menu_rotation">회전</string>
+    <string name="cb_dv_menu_prev">이전</string>
+    <string name="cb_dv_menu_next">다음</string>
+    <string name="cb_dv_toast_msg_first">첫번째 페이지입니다.</string>
+    <string name="cb_dv_toast_msg_last">마지막 페이지 입니다.</string>
+    <string name="cb_dv_toast_msg_wait_retry">페이지 로딩중입니다.</string>
+
+
+</resources>

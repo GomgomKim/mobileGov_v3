@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="cb_dv_int_less_than_64_off_screen_page_limit">1</integer>
+    <integer name="cb_dv_int_over_64_off_screen_page_limit">2</integer>
+</resources>

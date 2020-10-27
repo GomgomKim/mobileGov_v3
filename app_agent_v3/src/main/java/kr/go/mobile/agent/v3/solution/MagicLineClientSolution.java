@@ -14,6 +14,7 @@ import java.util.Arrays;
 
 import kr.go.mobile.agent.service.session.UserSigned;
 import kr.go.mobile.agent.solution.Solution;
+import kr.go.mobile.agent.utils.Aria;
 import kr.go.mobile.agent.utils.HardwareUtils;
 import kr.go.mobile.mobp.iff.R;
 
@@ -30,7 +31,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
 
     public MagicLineClientSolution(Context context) {
         super(context);
-        Log.d(TAG, "초기화");
+        Log.d(TAG, "인증서 로그인 모듈 초기화");
         try {
             magicLine = MagicLine.getIntance(context,
                     context.getString(R.string.MagicMRSLicense),
@@ -38,7 +39,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                     MagicLineType.VALUE_KEYSECURITY_NFILTER );
 
             magicLine.setIntranetCertMove(
-                    context.getString(R.string.MagicMRSIPIntra), //MAGICMRS_IP_INTRA,
+                    new Aria(context.getString(R.string.MagicMRSLicense)).decrypt(context.getString(R.string.MagicMRSIPIntra)), //MAGICMRS_IP_INTRA,
                     context.getResources().getInteger(R.integer.MagicMRSPort),
                     context.getString(R.string.MagicMRSAppId), //MAGICMRS_APPID,
                     context.getString(R.string.import_from_internet),
@@ -98,7 +99,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
         Log.d(TAG, "인증서 관리 화면으로 이동");
         try {
             magicLine.certManagerShow(context,
-                    context.getString(R.string.MagicMRSIP),
+                    new Aria(context.getString(R.string.MagicMRSLicense)).decrypt(context.getString(R.string.MagicMRSIP)),
                     context.getResources().getInteger(R.integer.MagicMRSPort),
                     context.getString(R.string.MagicMRSAppId),
                     REQUEST_CODE_CERT_MANAGER,
@@ -113,6 +114,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
         Result<UserSigned> ret = null;
         try {
             _showCertList(context);
+            ret = new Result<>(RESULT_CODE._WAIT, "");
         } catch (Exception e) {
             Log.e(TAG, "인증서 리스트 호출 에러", e);
             ret = new Result<>(RESULT_CODE._INVALID, e.getMessage());
@@ -142,8 +144,7 @@ public class MagicLineClientSolution extends Solution<Void, UserSigned> {
                         String signedDataBase64 = MagicLine.getSignedDataBase64(intent);
 
                         UserSigned signed = new UserSigned(subjectDN, signedDataBase64);
-                        Result<UserSigned> result = new Result<>(RESULT_CODE._OK);
-                        result.out = signed;
+                        Result<UserSigned> result = new Result<>(signed);
                         setResult(result);
                     } else {
                         int errorCode = MagicLine.getErrorCode(intent);

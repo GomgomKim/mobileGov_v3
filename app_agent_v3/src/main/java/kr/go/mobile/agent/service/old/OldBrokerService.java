@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import kr.go.mobile.agent.app.MonitorManager;
 import kr.go.mobile.agent.service.broker.BrokerResponse;
 import kr.go.mobile.agent.service.broker.BrokerService;
 import kr.go.mobile.agent.service.broker.BrokerTask;
@@ -35,7 +34,7 @@ import kr.go.mobile.agent.service.broker.IBrokerService;
 import kr.go.mobile.agent.service.broker.IBrokerServiceCallback;
 import kr.go.mobile.agent.service.broker.UserAuthentication;
 import kr.go.mobile.agent.utils.Log;
-import kr.go.mobile.common.v3.MobileEGovConstants;
+import kr.go.mobile.common.v3.CommonBasedConstants;
 import kr.go.mobile.servicebrokerLib.aidl.StringCryptoUtil;
 
 public class OldBrokerService extends Service {
@@ -77,9 +76,10 @@ public class OldBrokerService extends Service {
                         Log.i(TAG, "<<<< data to \'NET\' (data)");
                         // TODO BrokerResponse.getCode() 값에 따른 처리 분기 (참고. HttpTask.java line 44)
                         int code = response.getCode();
-                        String respMessage = (String) response.getResult();
-                        String errMessage = (String) response.getErrorMessage();
-                        if(code == MobileEGovConstants.BROKER_ERROR_NONE){
+
+
+                        if(code == CommonBasedConstants.BROKER_ERROR_NONE){
+                            String respMessage = (response.getResult()).data;
                             // 데이터 들어왔을 때
                             if (respMessage.length() > 20000 ) {
                                 // largeResult 일 경우 파일로 전달.
@@ -117,12 +117,19 @@ public class OldBrokerService extends Service {
                                     }
                                 }
                             } else {
-                                callback.success((String)response.getResult());
+                                callback.success(response.getResult().data);
                             }
-                        }
-                        else if(code == MobileEGovConstants.BROKER_ERROR_PROC_DATA){
+                        } else {
+                            String errMessage = response.getErrorMessage();
                             callback.fail(code, errMessage);
                         }
+
+                        /*
+                        // TODO 에러별로 분기해야 할까요 ? - Tom
+                        else if(code == MobileEGovConstants.BROKER_ERROR_PROC_DATA) {
+                            callback.fail(code, errMessage);
+                        }
+                         */
 
 
                     }
@@ -202,8 +209,7 @@ public class OldBrokerService extends Service {
                 Log.d(TAG, " - dataType (ignore) :: " + dataType);
                 Log.d(TAG, " - serviceId :: " + serviceId);
                 Log.d(TAG, " - parameters :: " + parameter);
-                BrokerTask task = BrokerTask.obtain();
-                task.serviceId = serviceId;
+                BrokerTask task = BrokerTask.obtain(serviceId);
                 task.serviceParam = parameter;
                 realBrokerService.enqueue(task, getDataCallback(callback));
                 return true;
@@ -236,8 +242,7 @@ public class OldBrokerService extends Service {
                     Log.d(TAG, " - serviceId :: " + serviceId);
                     Log.d(TAG, " - parameters :: " + parameter);
 
-                    BrokerTask task = BrokerTask.obtain();
-                    task.serviceId = serviceId;
+                    BrokerTask task = BrokerTask.obtain(serviceId);
                     task.serviceParam = new String(bigDataBuffer).trim();
                     realBrokerService.enqueue(task, getDataCallback(callback));
                 } else {
@@ -250,8 +255,21 @@ public class OldBrokerService extends Service {
             }
 
             @Override
-            public void download(String header, String filePath, String fileName, IRemoteServiceCallback callback) throws RemoteException {
+            public String uploadWithCB(String header, String serviceID, String filePath, String parameter, IRemoteServiceCallback callback) throws RemoteException {
+                Log.i(TAG, ">>>> data from \'APP\' (upload)");
+                Log.d(TAG, " - header (ignore) :: " + header);
+                Log.d(TAG, " - filePath :: " + filePath);
+                Log.d(TAG, " - parameters :: " + parameter);
+                BrokerTask task = BrokerTask.obtain(BrokerService.CMM_SERVICE_FILE_UPLOAD);
+                task.serviceParam = parameter;
+                task.serviceLocalPath = filePath;
+                throw new RemoteException("지원하지 않는 기능입니다.");
+                //realBrokerService.enqueue(task, getDataCallback(callback));
+            }
 
+            @Override
+            public void download(String header, String filePath, String fileName, IRemoteServiceCallback callback) throws RemoteException {
+                // 네트워크 모니터링 리셋
             }
 
             @Override
@@ -265,10 +283,7 @@ public class OldBrokerService extends Service {
             }
 
             ////////////////////// DEPRECATED ////////////////////////////
-            @Override
-            public String uploadWithCB(String header, String serviceID, String filePath, String parameter, IRemoteServiceCallback callback) throws RemoteException {
-                return null;
-            }
+
 
             @Override
             public boolean documentWithExitCB(String header, String url, IRemoteServiceCallback callback, IRemoteServiceExitCallback exitcallback) throws RemoteException {

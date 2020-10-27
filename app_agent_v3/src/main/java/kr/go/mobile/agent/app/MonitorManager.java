@@ -2,6 +2,7 @@ package kr.go.mobile.agent.app;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 
@@ -10,6 +11,7 @@ import kr.go.mobile.agent.service.monitor.IntegrityConfirm;
 import kr.go.mobile.agent.service.monitor.MonitorService;
 import kr.go.mobile.agent.service.monitor.SecureNetwork;
 import kr.go.mobile.agent.service.monitor.ThreatDetection;
+import kr.go.mobile.agent.service.session.SessionService;
 
 public class MonitorManager {
 
@@ -17,31 +19,23 @@ public class MonitorManager {
         return new MonitorManager(service);
     }
 
-    public static void startSecureNetwork(Context ctx, String loginId, String loginPw) {
-        Intent intent = new Intent(ctx, MonitorService.class);
-        intent.setAction(MonitorService.START_SECURE_NETWORK);
-        intent.putExtra("id", loginId);
-        intent.putExtra("pw", loginPw);
-        ctx.startService(intent);
+    public static void bindService(Context context, ServiceConnection localServiceConnection) {
+        Intent bindIntent = new Intent(context, MonitorService.class);
+        bindIntent.setAction("local");
+        context.bindService(bindIntent, localServiceConnection,
+                Context.BIND_AUTO_CREATE |
+                        Context.BIND_ADJUST_WITH_ACTIVITY |
+                        Context.BIND_WAIVE_PRIORITY |
+                        Context.BIND_ABOVE_CLIENT |
+                        Context.BIND_IMPORTANT);
     }
 
-    public static void stopSecureNetwork(Context ctx) {
-        Intent intent = new Intent(ctx, MonitorService.class);
-        intent.setAction(MonitorService.FORCE_STOP_SECURE_NETWORK);
-        ctx.startService(intent);
-    }
-
-    public static void addMonitorPackage(Context ctx, Bundle info) {
-        Intent intent = new Intent(ctx, MonitorService.class);
-        intent.setAction(MonitorService.MONITOR_ADD_ADMIN_PACKAGE);
-        intent.putExtra("admin_info", info);
-        ctx.startService(intent);
-    }
-
+    // 공통기반 라이브러리 2.x.x 를 사용하는 행정앱이 완전히 종료될 때 이벤트 발생.
+    @Deprecated
     public static void removeMonitorPackage(Context ctx, String requestId) {
         Intent intent = new Intent(ctx, MonitorService.class);
         intent.setAction(MonitorService.MONITOR_REMOVE_ADMIN_PACKAGE);
-        intent.putExtra("req_id_base64", requestId);
+        intent.putExtra("req_id", requestId);
         ctx.startService(intent);
     }
 
@@ -51,8 +45,6 @@ public class MonitorManager {
     MonitorManager(IBinder binder) {
         this.SERVICE = (ILocalMonitorService) binder;
     }
-
-
 
     public void setAnotherConfirm(Bundle extra) {
         String another = extra.getString("extra_token", null);
@@ -86,6 +78,22 @@ public class MonitorManager {
         return false;
     }
 
+    public void startSecureNetwork(Context ctx, String loginId, String loginPw) {
+        SERVICE.startSecureNetwork(ctx, loginId, loginPw);
+    }
+
+    public void stopSecureNetwork() {
+        SERVICE.stopSecureNetwork();
+    }
+
+    public void addMonitorPackage(Bundle info) {
+        SERVICE.addPackage(info);
+    }
+
+    public void removeMonitorPackage(String uid) {
+        SERVICE.removePackage(uid);
+    }
+
     public String getErrorMessage(int type) {
         return SERVICE.getErrorMessage(type);
     }
@@ -96,5 +104,9 @@ public class MonitorManager {
 
     public void clear() {
         SERVICE.clear();
+    }
+
+    private void reset() {
+        SERVICE.reset();
     }
 }

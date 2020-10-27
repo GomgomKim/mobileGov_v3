@@ -1,11 +1,15 @@
 package kr.go.mobile.agent.app;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.IBinder;
 
 import java.util.Objects;
 
 import kr.go.mobile.agent.service.broker.UserAuthentication;
 import kr.go.mobile.agent.service.session.ILocalSessionService;
+import kr.go.mobile.agent.service.session.SessionService;
 import kr.go.mobile.agent.service.session.UserSigned;
 import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.agent.utils.UserAuthenticationUtils;
@@ -13,6 +17,17 @@ import kr.go.mobile.agent.utils.UserAuthenticationUtils;
 public class SessionManager {
 
     private static  SessionManager mInstance;
+
+    public static void bindService(Context context, ServiceConnection localServiceConnection) {
+        Intent bindIntent = new Intent(context, SessionService.class);
+        bindIntent.setAction("local");
+        context.bindService(bindIntent, localServiceConnection,
+                Context.BIND_AUTO_CREATE |
+                        Context.BIND_ADJUST_WITH_ACTIVITY |
+                        Context.BIND_WAIVE_PRIORITY |
+                        Context.BIND_ABOVE_CLIENT |
+                        Context.BIND_IMPORTANT);
+    }
 
     static SessionManager create(IBinder service) {
         SessionManager.mInstance = new SessionManager((ILocalSessionService) service);
@@ -28,6 +43,7 @@ public class SessionManager {
     public SessionManager(ILocalSessionService service) {
         this.session = service;
     }
+
 
     public void registerSigned(UserSigned signed) {
         session.registerSigned(signed);

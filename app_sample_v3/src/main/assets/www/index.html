@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 테스트앱(Hybrid)</title>
+    <script src="./js/jquery-latest.min.js"></script>
+    <script src="./js/CommonBaseAdapter.3.0.0.js"></script>
+
+    <script type="text/javascript">
+        function init() {
+            var params = URLParams.parse();
+            console.log('get cn = ' + params.cn);
+            console.log('get ou = ' + params.ou);
+			$("#info").html("이름: " + params.cn + "<br>소속기관: " + params.ou);
+        }
+        function getUserInfo() {
+            // 인증 정보 조회
+            CommonBaseAPI.Broker.getSSO (
+                // 인증 정보 조회 성공
+                function(result) {
+                    console.log(result);
+                    let jsonObj = JSON.parse(result, function(key, value) {
+                        console.log(key + " = " + value);
+                        return value;
+                    });
+                    var msg = '';
+                    $.each(jsonObj, function(key, value){
+                        msg += key + ' = ' + value + '<br>';
+                        console.log('key:' + key + ' / ' + 'value:' + value);
+                    });
+                	$("#result").html("Result : OK (Success) <br>" + msg);
+                },
+                // 인증 정보 조회 실패
+                function(error) {
+                	$("#result").html("ERROR : " + error);
+                }
+            );
+        }
+    </script>
+</head>
+<style>
+    .button {
+        width: 100%;
+        display: block;
+        border: 1px solid transparent;
+        padding: 13px 32px;
+        cursor: pointer;
+        margin-top: 10px;
+        border-radius: .25rem;
+        font-family: "Lucica Console", Monaco, monospace;
+        margin-bottom: 10px;
+    }
+</style>
+
+<body style="background-color:white;" onload="init()">
+    <h1>가상화 테스트앱(Hybrid)</h1>
+    <h1 id="info"></h1>
+    <br>
+    <br>
+    <center>
+        <p>
+            <button class="button" onclick="getUserInfo()">사용자 인증 정보 요청(SSO)</button>
+            <button class="button" onclick="location.href='./api/sb.html'">기관 서비스 호출</button>
+            <button class="button" onclick="location.href='./api/dv.html'">문서뷰어</button>
+            <button class="button" onclick="location.href='./api/custom_api.html'">커스텀 모듈 구현 예시</button>
+            <button class="button" onclick="location.href='./api/hybrid_platform.html'">하이브리드 플랫폼 기능</button>
+        </p>
+    </center>
+
+    <h5 id="result"></h5>
+</body>
+</html>

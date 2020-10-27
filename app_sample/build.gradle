@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     defaultConfig {
         applicationId "kr.go.mobile.iff.sample"
         minSdkVersion 21
         versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        targetSdkVersion 28
+        targetSdkVersion 29
         ndk {
             abiFilters  'armeabi-v7a' // only support armeabi-v7a
         }
@@ -24,6 +24,10 @@ android {
         // Or, if you prefer, you can continue to check for errors in release builds,
         // but continue the build even when errors are found:
         abortOnError false
+    }
+
+    packagingOptions {
+        exclude 'META-INF/LGPL2.1'
     }
 
     flavorDimensions "pkgInfo"

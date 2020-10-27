@@ -25,12 +25,12 @@ public class EverSafeSolution extends Solution<Void, String> {
     public EverSafeSolution(Context context) {
         super(context);
         Log.d(TAG, "무결성 검증 솔루션 초기화");
-        EversafeHelper.getInstance().initialize(context.getString(R.string.msmurl));
         EversafeHelper.getInstance().setBackgroundMaintenanceSec(600);
     }
 
     @Override
     protected Result<String> process(Context context, Void v) {
+        EversafeHelper.getInstance().initialize(context.getString(R.string.msmurl));
         // AsyncTask 는 장기적으로 @deprecated 예정이다. MSM 라이브러리에서 대응이 필요한 코드
         EversafeHelper.GetVerificationTokenTask  task = new EversafeHelper.GetVerificationTokenTask() {
             @Override

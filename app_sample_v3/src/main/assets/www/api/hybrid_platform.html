@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>가상화앱 사용자 정의 함수 테스트앱(Hybrid)</title>
+    <script src="../js/jquery-latest.min.js"></script>
+    <script src="../js/CommonBaseAdapter.3.0.0.js"></script>
+    
+    <script type="text/javascript">
+        function testError() {
+            // 사용자 플러그인 호출
+            CommonBaseAPI.exec(
+                // 사용자 함수 명
+                //'UserPlugin2.testAPI3',
+                'UserPlugin2.errorAPI',
+                // 사용자 함수 호출 성공
+                function(result) {
+                    console.log('index html result=' + result);
+                    $("#result").html("result = " + result.name);
+                },
+                // 사용자 함수 호출 실패
+                function(error) {
+                    console.log('error=' + error);
+                    $("#result").html("error= " + error);
+                },
+                // 사용자 함수 파라미터
+                'KKKKKK!'
+            );
+        }
+
+        function testStartLoading() {
+            var param = new Object();
+            param.title = "로딩바";
+            param.content = "로딩중";
+            param.cancelable = false;
+            param.timeout = 3;
+            //param.timeoutUrl="https://www.naver.com"; //native에서 http면 전체 주소로 로딩 아니면
+            //param.timeoutUrl="api/old_plugin.html"; //file:///android_asset/www/ 는 native에서 자동으로 들어감:
+            CommonBaseAPI.Browser.startLoadingBar(param);
+       }
+
+        function testTerminate() {
+            CommonBaseAPI.Browser.terminateApp();
+       }
+
+       function testBackKeyAdd() {
+           CommonBaseAPI.Browser.addBackKeyListener(backEvent);
+       }
+
+       function testBackKeyRemove() {
+          CommonBaseAPI.Browser.removeBackKeyListener(backEvent);
+       }
+
+       function backEvent(){
+            alert('back 키 눌림');
+       }
+
+       function testCall(){
+           CommonBaseAPI.Telephony.call(function(result){
+              console.log("###testCall result="+result);
+           },function(error){
+                console.log("###testCall error="+error);
+                alert('권한 허가 후 재실행해 주세요');
+           },
+              {"phoneNumber":"01023057212"}
+           );
+       }
+
+       function testDial(){
+           CommonBaseAPI.Telephony.dial(function(result){
+              console.log("###testDial result="+result);
+           },function(error){
+              console.log("###testDial error="+error);
+           },
+              {"phoneNumber":"01023057212"}
+           );
+       }
+
+        function testSendSMS(){
+           CommonBaseAPI.Telephony.sendSMS(function(result){
+               console.log("###testSendSMS result="+result);
+                alert('전송완료');
+           },function(error){
+              console.log("###testSendSMS error="+error);
+           },
+              {"phoneNumber":["01023057212","01038118797","01035198805"],"message":"테스트 메세지"}
+           );
+       }
+
+       function testLaunchSMS(){
+          CommonBaseAPI.Telephony.launchSMS(function(result){
+              console.log("###testSendSMS2 result="+result);
+
+           },function(error){
+              console.log("###testSendSMS2 error="+error);
+           },
+              {"phoneNumber":["01023057212","01038118797","01035198805"],"direct":false,"message":"테스트 메세지"}
+           );
+       }
+
+       function testLocation(){
+          CommonBaseAPI.Location.getCurrentPosition(function(result){
+              alert("###testLocation result="+result.coords.latitude+"/"+result.coords.longitude);
+
+           },function(error){
+              console.log("###testLocation error="+error);
+              alert("###testLocation error="+error);
+           },
+
+              {timeout : 5000, accuracy : 3}
+           );
+       }
+
+       function testAlert(){
+         alert("###Alert###");
+       }
+    </script>
+
+</head>
+<style>
+    .button {
+        width: 100%;
+        display: block;
+        border: 1px solid transparent;
+        padding: 13px 32px;
+        cursor: pointer;
+        margin-top: 10px;
+        border-radius: .25rem;
+        font-family: "Lucica Console", Monaco, monospace;
+        margin-bottom: 10px;
+    }
+</style>
+<body style="background-color:white;">
+
+<h1>가상화 테스트앱(Hybrid)</h1>
+<h2>User Plugin</h2>
+<br>
+
+<center>
+    <button class="button" onclick="testStartLoading()">로딩바 호출</button>
+    <button class="button" onclick="testBackKeyAdd()">BackKey Event Add</button>
+    <button class="button" onclick="testBackKeyRemove()">BackKey Event Remove</button>
+    <button class="button" onclick="testCall()">전화 바로 걸기</button>
+    <button class="button" onclick="testDial()">전화앱 실행</button>
+    <button class="button" onclick="testSendSMS()">문자 바로 보내기</button>
+    <button class="button" onclick="testLaunchSMS()">문자앱 실행</button>
+    <button class="button" onclick="testLocation()">위치정보 실행</button>
+    <button class="button" onclick="testError()">비정상 호출</button>
+    <button class="button" onclick="testTerminate()">앱종료 호출</button>
+</center>
+<h5 id="result"></h5>
+</body>
+</html>

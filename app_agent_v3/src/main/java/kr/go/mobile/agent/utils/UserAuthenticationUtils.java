@@ -34,7 +34,7 @@ public class UserAuthenticationUtils {
         // STEP 4. 요청 파라미터 목록 값 등록
         JSONObject reqParams = new JSONObject();
         reqParams.put("params", reqParamArray);
-        reqParams.put("id", DummyClient.TransactionIdGenerator.getInstance().nextKey());
+        reqParams.put("id", TransactionIdGenerator.getInstance().nextKey());
 
         JSONObject reqMethodCall = new JSONObject();
         reqMethodCall.put("methodCall", reqParams);
@@ -42,21 +42,68 @@ public class UserAuthenticationUtils {
         return reqMethodCall.toString();
     }
 
+    public static class TransactionIdGenerator {
+        private static TransactionIdGenerator generator;
+
+        private long currTimeMillis;
+        private long currSeq;
+        private TransactionIdGenerator() {
+            currTimeMillis = System.currentTimeMillis();
+            currSeq = 0;
+        }
+
+        public static TransactionIdGenerator getInstance() {
+            if (generator == null) {
+                generator = new TransactionIdGenerator();
+            }
+
+            synchronized(generator){
+                return generator;
+            }
+        }
+
+        public String nextKey() {
+            synchronized (generator) {
+                long tempTimeMillis = System.nanoTime();
+                if (currTimeMillis == tempTimeMillis) {
+                    currSeq++;
+                } else {
+                    currTimeMillis = tempTimeMillis;
+                    currSeq = 1;
+                }
+            }
+            return makeTransactionKey(currTimeMillis, currSeq);
+        }
+
+        private String makeTransactionKey(long millis, long seq) {
+            String sSeq = "00000" + Long.toString(seq);
+            sSeq = millis + sSeq;
+            if (sSeq.length() > 12) {
+                sSeq = sSeq.substring(sSeq.length() - 12, sSeq.length());
+            }
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
+
+            return sdf.format(Calendar.getInstance().getTime()) + "-" + sSeq;
+        }
+    }
+
     static final int AUTH_STATE_ELSE = 9;
     static final int AUTH_STATE_SUCCESS = 0;
 
     static final String[] ldapArray = {
             "검증성공",
+            "조회 불가능한 LDAP정보입니다.",
+            "", "", "","","","","",
+            "LDAP 인증실패하였습니다."
+            };
+    static final String[] certArray = {
+            "검증성공",
             "폐지된 인증서입니다.",
             "만료된 인증서입니다.",
             "유효하지 않은 인증서입니다.",
             "","","","","",
-            "인증서 확인에 실패하였습니다."};
-    static final String[] certArray = {
-            "검증성공",
-            "조회 불가능한 LDAP정보입니다.",
-            "", "", "","","","","",
-            "LDAP 인증실패하였습니다."};
+            "인증서 확인에 실패하였습니다."
+            };
 
     public static class InvalidatedAuthException extends Throwable {
         public InvalidatedAuthException(String message) {

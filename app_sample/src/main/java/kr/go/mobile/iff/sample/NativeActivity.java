@@ -1,6 +1,7 @@
 package kr.go.mobile.iff.sample;
 
 import android.content.Intent;
+import android.os.Environment;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -246,6 +247,39 @@ public class NativeActivity extends AppCompatActivity {
         /*
         Intent _intent = new Intent(this, CustomDocActivity.class);
         startActivity(_intent);
+        */
+
+        // TODO 구현 완료 시 주석 해제
+        /*
+        String uploadPath = "http://10.180.22.77:65535/MOI_API/upload";
+        String srcPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/tmp.jpg";
+        String extraParam = "";
+
+
+        Intent intent = new Intent();
+        intent.putExtra("sCode", "upload");
+        intent.putExtra("filePath", srcPath);
+        intent.putExtra("parameter", "url=" + uploadPath + ";" + extraParam);
+
+        ServiceBrokerLib lib = new ServiceBrokerLib(NativeActivity.this, new ResponseListener() {
+            @Override
+            public void receive(ResponseEvent responseEvent) {
+                final int resultCode = responseEvent.getResultCode();
+                String resultData = responseEvent.getResultData();
+                Log.i("fileUploadSB", "File Upload API 호출 결과");
+                Log.d("fileUploadSB", "resultCode = " + resultCode);
+                Log.d("fileUploadSB", "resultData = " + resultData);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(NativeActivity.this, "resultCode = " + resultCode, Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+            }
+        });
+        lib.request(intent);
         */
     }
 

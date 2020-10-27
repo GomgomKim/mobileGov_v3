@@ -14,9 +14,15 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.ResultReceiver;
+import android.se.omapi.Session;
 import android.util.Base64;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.dkitec.PushLibrary.Listener.PushAppRegistListener;
+import com.dkitec.PushLibrary.PushLibrary;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -49,6 +55,7 @@ import kr.go.mobile.agent.service.session.ILocalSessionService;
 import kr.go.mobile.agent.service.session.SessionService;
 import kr.go.mobile.agent.service.session.UserSigned;
 import kr.go.mobile.agent.solution.Solution;
+import kr.go.mobile.agent.solution.SolutionManager;
 import kr.go.mobile.agent.utils.Aria;
 import kr.go.mobile.agent.utils.HardwareUtils;
 import kr.go.mobile.agent.utils.Log;
@@ -56,15 +63,16 @@ import kr.go.mobile.agent.utils.ResourceUtils;
 import kr.go.mobile.agent.v3.CommonBaseInitActivity;
 import kr.go.mobile.agent.v3.NotInstalledRequiredPackagesException;
 import kr.go.mobile.agent.v3.UninstallExpiredPackagesException;
-import kr.go.mobile.common.v3.MobileEGovConstants;
+import kr.go.mobile.agent.v3.solution.DKI_LocalPushSolution;
+import kr.go.mobile.common.v3.CommonBasedConstants;
 import kr.go.mobile.mobp.iff.R;
 
 /**
  * 모바일 전자정부에서 사용하는 보안 에이전트 (Security Agent) 의 Application 객체
  * 객체 생성시
  */
-public class SAGTApplication extends Application implements Application.ActivityLifecycleCallbacks,
-        CommonBaseInitActivity.LocalService, BrokerService.IServiceManager {
+public class SAGTApplication extends Application implements CommonBaseInitActivity.LocalService,
+        BrokerService.IServiceManager {
 
     private static String TAG = "MobileGov-Core"; //SAGTApplication.class.getSimpleName();
     private final String PREFIX_LOGFILE = "crash-log-%s.log";
@@ -98,11 +106,15 @@ public class SAGTApplication extends Application implements Application.Activity
     private ServiceConnection localServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d(TAG, "로컬 서비스에 연결되었습니다. - " + service.hashCode());
+
             if (service instanceof ILocalSessionService) {
-                createSessionServiceManager(service);
+                Log.d(TAG, "(세션) 로컬 서비스에 연결되었습니다. - " + service.hashCode());
+                Log.concurrency(Thread.currentThread(), "CREATE - SESSION ");
+                SESSION = SessionManager.create(service);
             } else if (service instanceof ILocalMonitorService) {
-                createMonitorServiceManager(service);
+                Log.d(TAG, "(모니터) 로컬 서비스에 연결되었습니다. - " + service.hashCode());
+                Log.concurrency(Thread.currentThread(), "CREATE - MONITOR");
+                MONITOR = MonitorManager.create(service);
             } else {
                 throw new IllegalStateException("정의되지 않은 로컬서비스에 연결되었습니다.");
             }
@@ -113,47 +125,182 @@ public class SAGTApplication extends Application implements Application.Activity
             Log.e(TAG, "로컬 서비스 연결이 해제되어 강제종료 합니다.");
             throw new RuntimeException("로컬 서비스 연결이 해제되어 강제종료 합니다.");
         }
-
-        void createSessionServiceManager(IBinder service) {
-            Log.concurrency(Thread.currentThread(), "CREATE - SESSION ");
-            SESSION = SessionManager.create(service);
-        }
-
-        void createMonitorServiceManager(IBinder service) {
-            Log.concurrency(Thread.currentThread(), "CREATE - MONITOR");
-            MONITOR = MonitorManager.create(service);
-        }
     };
 
     private boolean forceStopLoadingActivity;
     private SessionManager SESSION;
     private MonitorManager MONITOR;
 
+    String[] resultCheckedSolution;
     private boolean printTimeStamp = true;
     private boolean exportLog = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.DEBUGABLED = true;
+        Log.DEBUG = true;
         Log.timeStamp("application-init");
-        bindServices(new Class[]{MonitorService.class, SessionService.class});
-        //registerActivityLifecycleCallbacks(this);
-        startCrashMonitor();
+        try {
+            checkPackages();
+            resultCheckedSolution = new String[0];
+            SessionManager.bindService(this, localServiceConnection);
+            MonitorManager.bindService(this, localServiceConnection);
+            Log.TC("서비스 바인딩 요청");
+
+            Runtime.getRuntime().addShutdownHook(new Thread(){
+                @Override
+                public void run(){
+                    Log.e(TAG, "----- Application.onShutdownHook ----- ");
+                }
+            });
+
+            /* TODO 필요에 따라서 구현
+            registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+                @Override
+                public void onActivityCreated(@NotNull Activity activity, @Nullable Bundle savedInstanceState) {
+//        Log.d(TAG, "onActivityCreated - " + activity.toString());
+                }
+
+                @Override
+                public void onActivityStarted(@NotNull Activity activity) {
+//        Log.d(TAG, "onActivityStarted - " + activity.toString());
+                }
+
+                @Override
+                public void onActivityResumed(Activity activity) {
+                    setTopActivity(activity);
+//        Log.d(TAG, "onActivityResumed - " + activity.toString());
+                }
+
+                @Override
+                public void onActivityPaused(@NotNull Activity activity) {
+//        Log.d(TAG, "onActivityPaused - " +activity.toString());
+                    changeStatus(activity);
+                    Enumeration<Activity> keys = resumeActivities.keys();
+                    int resumeCount = 0;
+                    while(keys.hasMoreElements()) {
+                        Activity a = keys.nextElement();
+                        if (a == null) continue;
+                        boolean isResume = resumeActivities.get(a);
+
+                        if (isResume) {
+                            resumeCount++;
+                        }
+//            Log.d(TAG, a.toString() + " status(resume) = " + isResume);
+                    }
+                    if (resumeCount == 0) {
+//            Log.e(TAG, "force finish");
+//            finishApplication();
+                        // TODO 사용자가 홈키로 나갈 경우 종료 ?
+                    }
+                }
+
+                @Override
+                public void onActivityStopped(@NotNull Activity activity) {}
+
+                @Override
+                public void onActivitySaveInstanceState(@NotNull Activity activity, @NotNull Bundle outState) {}
+
+                @Override
+                public void onActivityDestroyed(@NotNull Activity activity) {
+                    deleteTopActivity(activity);
+                }
+            });
+            */
+            setPush();
+            startCrashMonitor();
+        } catch (UninstallExpiredPackagesException e) {
+            resultCheckedSolution = new String[] {
+                    "REMOVE",
+                    String.format("라이선스 만료로 %s 앱을 삭제해야 합니다. 삭제 후 다시 실행해주시기 바랍니다.", e.getPackageLabel())
+            };
+        } catch (NotInstalledRequiredPackagesException e) {
+            resultCheckedSolution = new String[] {
+                    "INSTALL",
+                    String.format("공통기반 서비스 지원을 위한 %s 앱을 설치해야 합니다. 설치 후 다시 실행해주시기 바립니다.", e.getPackageLabel())
+            };
+        } catch (Exception e) {
+            resultCheckedSolution = new String[] {
+                    "ERROR",
+                    "앱 검사를 진행할 수 없습니다. 종료 후 다시 실행해주시기 바랍니다."
+            };
+        }
     }
 
-    void bindServices(Class<?>[] initServiceClasses) {
-        for (Class<?> clazz : initServiceClasses) {
-            Intent bindIntent = new Intent(this, clazz);
-            bindIntent.setAction("local");
-            bindIntent.putExtra("result", receiverMonitor);
-            bindService(bindIntent, localServiceConnection,
-                    Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT);
+    void setPush() {
+
+        if (false) {
+            Toast.makeText(this, "등록시도...", Toast.LENGTH_SHORT).show();
+            android.util.Log.d("TEST", "등록시도..");
+            final String serverAddress = new Aria(getString(R.string.MagicMRSLicense)).decrypt(getString(R.string.pushServer));
+            final String appID = getString(R.string.pushAppId);
+            int ret = PushLibrary.getInstance().setStart(this, serverAddress, appID);
+            android.util.Log.d("TEST", "setStart : " + ret);
+
+            String cn = "01086431234";
+            // PUSH 서비스 등록 요청
+            ret = PushLibrary.getInstance().AppRegist(this, new PushAppRegistListener() {
+
+                @Override
+                public void didRegistResult(Context context, Bundle bundle) {
+                    // 요청 결과 확인
+                    String code = bundle.getString("RT");
+                    String msg = bundle.getString("RT_MSG");
+                    if (code.equals("0000")) {
+                        //Toast.makeText(this, "등록 성공", Toast.LENGTH_SHORT).show();
+                    } else {
+                        //Toast.makeText(this, "Code = " + code + ", Message = " + msg, Toast.LENGTH_LONG).show();
+                    }
+                    android.util.Log.d("TEST", "등록응답: Code = " + code + ", Message = " + msg);
+                }
+
+            }, cn, null, null);
+            android.util.Log.d("TEST", "AppRegist : " + ret);
+            Toast.makeText(this, "등록 시도 - 정상", Toast.LENGTH_SHORT).show();
+            android.util.Log.d("TEST", "등록 시도 - 정상");
+        } else {
+            // TODO
+            try {
+                Solution pushSolution = SolutionManager.initSolutionModule(getApplicationContext(), SolutionManager.PUSH);
+                pushSolution.setDefaultEventListener(new Solution.EventListener() {
+                    @Override
+                    public void onCompleted(Context context, Solution.Result result) {
+                        Bundle bundle = (Bundle) result.out;
+                        Log.d(TAG, bundle.toString());
+                        // push 등록 결과
+                        String code = bundle.getString("RT", "");
+                        String msg = bundle.getString("RT_MSG", "");
+                        if (code.equals("0000")) {
+                            Log.d(TAG, "로컬푸쉬 등록성공");
+                        } else {
+                            Log.d(TAG, "로컬푸쉬 등록실패 ("  + msg + ")");
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Context context, String message, Throwable t) {
+
+                    }
+                });
+                ((DKI_LocalPushSolution) SolutionManager.getSolutionModule(SolutionManager.PUSH))
+                        .execute(getApplicationContext(), "123456");
+                ////////////
+            } catch (SolutionManager.ModuleNotFoundException e) {
+                // TODO 메시지 재설정 필요.
+                throw new RuntimeException("dddd");
+            }
         }
+    }
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        Log.e(TAG, "----- onTerminate ----- ");
     }
 
     public void setStopActivity() {
         forceStopLoadingActivity = true;
+        SESSION.getUserSigned().stopLoginActivity();
     }
 
     @Override
@@ -164,43 +311,9 @@ public class SAGTApplication extends Application implements Application.Activity
     @Override
     public void monitorPackage() {
         Bundle info = MONITOR.getRunningPackageInfo();
-        MonitorManager.addMonitorPackage(this, info);
+        MONITOR.addMonitorPackage(info);
     }
 
-    @Override
-    public void takeGenerateSigned(final CommonBaseInitActivity.TakeListener<UserSigned.STATUS> listener, Context context) {
-        if(printTimeStamp) {
-            Log.timeStamp("application-init");
-            printTimeStamp = false;
-        }
-
-        UserSigned signed = SESSION.getUserSigned();
-        signed.startLoginActivityForResult(context, new Solution.EventListener<UserSigned>() {
-            @Override
-            public void onFailure(Context context, String message, Throwable t) {
-                Log.e(TAG, "인증서 로그인 모듈을 실행할 수 없습니다. (이유 : " + message + ")", t);
-                listener.onTake(UserSigned.STATUS._ERROR);
-            }
-
-            @Override
-            public void onCompleted(Context context, Solution.Result<UserSigned> result) {
-                switch (result.getCode()) {
-                    case _OK:
-                        Log.d(TAG, "GPKI 인증서 로그인 성공");
-                        SESSION.registerSigned(result.out);
-                        result.out = null;
-                        listener.onTake(UserSigned.STATUS._OK);
-                        break;
-                    case _CANCEL:
-                        listener.onTake(UserSigned.STATUS._USER_CANCEL);
-                        break;
-                    default:
-                        Log.e(TAG, result.getErrorMessage());
-                        throw new IllegalStateException("인증서 로그인 요청시 예상되지 않는 값이 전달되었습니다. value = " + result.getCode());
-                }
-            }
-        });
-    }
 
     @Override
     public void validSigned() throws SessionManager.SessionException {
@@ -208,37 +321,8 @@ public class SAGTApplication extends Application implements Application.Activity
     }
 
     @Override
-    public void takeInstalledApps(final CommonBaseInitActivity.TakeListener<String[]> listener) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String[] ret = null;
-                try {
-
-                    checkPackages();
-                    ret = new String[0];
-                } catch (UninstallExpiredPackagesException e) {
-                    ret = new String[] {
-                            "REMOVE",
-                            String.format("라이선스 만료로 %s 앱을 삭제해야 합니다. 삭제 후 다시 실행해주시기 바랍니다.", e.getPackageLabel())
-                    };
-                } catch (NotInstalledRequiredPackagesException e) {
-                    ret = new String[] {
-                            "INSTALL",
-                            String.format("공통기반 서비스 지원을 위한 %s 앱을 설치해야 합니다. 설치 후 다시 실행해주시기 바립니다.", e.getPackageLabel())
-                    };
-                } catch (Exception e) {
-                    ret = new String[] {
-                            "ERROR",
-                            "앱 검사를 진행할 수 없습니다. 종료 후 다시 실행해주시기 바랍니다."
-                    };
-                } finally {
-                    if(forceStopLoadingActivity) return;
-
-                    listener.onTake(ret);
-                }
-            }
-        }, "check installed package").start();
+    public String[] checkSecureSolution() {
+        return resultCheckedSolution;
     }
 
     @Override
@@ -294,9 +378,45 @@ public class SAGTApplication extends Application implements Application.Activity
         }, "wait for safe device status").start();
     }
 
+
+    @Override
+    public void takeGenerateSigned(final CommonBaseInitActivity.TakeListener<UserSigned.STATUS> listener, Context context) {
+        if(printTimeStamp) {
+            Log.timeStamp("application-init");
+            printTimeStamp = false;
+        }
+
+        UserSigned signed = SESSION.getUserSigned();
+        signed.startLoginActivityForResult(context, new Solution.EventListener<UserSigned>() {
+            @Override
+            public void onFailure(Context context, String message, Throwable t) {
+                Log.e(TAG, "인증서 로그인 모듈을 실행할 수 없습니다. (이유 : " + message + ")", t);
+                listener.onTake(UserSigned.STATUS._ERROR);
+            }
+
+            @Override
+            public void onCompleted(Context context, Solution.Result<UserSigned> result) {
+                switch (result.getCode()) {
+                    case _OK:
+                        Log.d(TAG, "GPKI 인증서 로그인 성공");
+                        SESSION.registerSigned(result.out);
+                        result.out = null;
+                        listener.onTake(UserSigned.STATUS._OK);
+                        break;
+                    case _CANCEL:
+                        listener.onTake(UserSigned.STATUS._USER_CANCEL);
+                        break;
+                    default:
+                        Log.e(TAG, result.getErrorMessage());
+                        throw new IllegalStateException("인증서 로그인 요청시 예상되지 않는 값이 전달되었습니다. value = " + result.getCode());
+                }
+            }
+        });
+    }
+
     @Override
     public void taskConnectedSecureNetwork(final CommonBaseInitActivity.TakeListener<SecureNetwork.STATUS> listener) {
-        ////// SSL-VPN 솔루션에 종속적인 코드임. (SSL-VPN 에 로그인하기 위하여 약속된 ID 생성) //////////
+        ////// SSL-VPN 솔루션에 종속적인 코드임. (SSL-VPN 에 로그인하기 위하여 사전에 정의된 ID 생성) //////////
         String hardwareID = HardwareUtils.getAndroidID(this);
         String signedUserDN = SESSION.getUserDN();
         String confirmTokens = MONITOR.getConfirm();
@@ -307,7 +427,7 @@ public class SAGTApplication extends Application implements Application.Activity
         String loginId = String.format("%s,deviceID=%s|%s", signedUserDN, hardwareID, confirmTokens);
         String loginPw = "";
         ////// ///////////////////////////////////////////////////////////////////////// //////////
-        MonitorManager.startSecureNetwork(this, loginId, loginPw);
+        MONITOR.startSecureNetwork(this, loginId, loginPw);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -340,9 +460,7 @@ public class SAGTApplication extends Application implements Application.Activity
                         listener.onTake("");
                         break;
                     } catch (SessionManager.SessionException e) {
-                        if (e.getExpiredType() == SessionManager.SessionException.AUTH_NO_SESSION) {
-                            continue;
-                        } else {
+                        if (e.getExpiredType() != SessionManager.SessionException.AUTH_NO_SESSION) {
                             // SessionManager.SessionException.AUTH_MISMATCH_USER_DN:
                             // SessionManager.SessionException.AUTH_FAILED:
                             listener.onTake(e.getMessage());
@@ -361,12 +479,14 @@ public class SAGTApplication extends Application implements Application.Activity
 
     @Override
     public void clearToken() {
-        MONITOR.clear();
+        if (MONITOR != null)
+            MONITOR.clear();
     }
 
     @Override
     public void clearSession() {
-        SESSION.clear();
+        if (SESSION != null)
+            SESSION.clear();
     }
 
     @Override
@@ -378,8 +498,8 @@ public class SAGTApplication extends Application implements Application.Activity
     @Override
     public Bundle getUserBundle() {
         Bundle extra = new Bundle();
-        extra.putString(MobileEGovConstants.EXTRA_KEY_USER_ID, SESSION.getUserId());
-        extra.putString(MobileEGovConstants.EXTRA_KEY_DN, SESSION.getUserDN());
+        extra.putString(CommonBasedConstants.EXTRA_KEY_USER_ID, SESSION.getUserId());
+        extra.putString(CommonBasedConstants.EXTRA_KEY_DN, SESSION.getUserDN());
         return extra;
     }
 
@@ -531,7 +651,7 @@ public class SAGTApplication extends Application implements Application.Activity
             }
         } catch (Throwable e) {
             // UI 스레드에서 발생한 예기치 못한 예외사항
-            Log.e(TAG, "UI 스레드에서 예기치 않은 오류가 발생하였습니다.", e);
+            Log.e(TAG, "UI 스레드에서 예기치 않은 오류가 발생하였습니다.", e.getCause());
             try {
                 writeCrashLog(e);
             } catch (Exception ex) {
@@ -543,32 +663,38 @@ public class SAGTApplication extends Application implements Application.Activity
 
             // 예기치 않은 에러 발생할 경우 종료!
             Log.e(TAG, "예기치 않은 오류로 앱을 종료합니다. " + cause);
-            final Intent i = new Intent(this, CommonBaseInitActivity.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            i.putExtra("message", cause);
+            if (MONITOR.getSecureNetworkStatus() == SecureNetwork.STATUS._CONNECTED) {
+                MONITOR.stopSecureNetwork();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        do {
+                            SecureNetwork.STATUS status = MONITOR.getSecureNetworkStatus();
+                            if (status == SecureNetwork.STATUS._CONNECTED) continue;
+                            // TODO 종료 코드 다시 !
+                            if (getTopActivity() != null) {
+                                // 살아있는 엑티비티 모두 종료 (단, foregroundActivity 는 제외
+                                getTopActivity().moveTaskToBack(true);
+                                getTopActivity().finishAffinity();
 
-            MonitorManager.stopSecureNetwork(this);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    do {
-                        SecureNetwork.STATUS status = MONITOR.getSecureNetworkStatus();
-                        if (status == SecureNetwork.STATUS._CONNECTED) continue;
+                                do {
 
-                        startActivity(i);
-                        break;
-                    } while (true);
-                }
+                                } while (!getTopActivity().isDestroyed());
+                            }
+                            System.exit(0);
+                            break;
+                        } while (true);
+                    }
 
-            }, "wait for disconnection secure network").start();
-
+                }, "wait for disconnection secure network").start();
+            }
 
         }
     }
 
     private void writeCrashLog(Throwable t) throws Exception {
         String cert = null;
-        if (!Log.DEBUGABLED) {
+        if (!Log.DEBUG) {
             Signature certSignature;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 certSignature = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES).signingInfo.getApkContentsSigners()[0];
@@ -668,54 +794,6 @@ public class SAGTApplication extends Application implements Application.Activity
         resumeActivities.put(activity, false);
     }
 
-    @Override
-    public void onActivityCreated(@NotNull Activity activity, @Nullable Bundle savedInstanceState) {
-//        Log.d(TAG, "onActivityCreated - " + activity.toString());
-    }
 
-    @Override
-    public void onActivityStarted(@NotNull Activity activity) {
-//        Log.d(TAG, "onActivityStarted - " + activity.toString());
-    }
-
-    @Override
-    public void onActivityResumed(Activity activity) {
-        setTopActivity(activity);
-//        Log.d(TAG, "onActivityResumed - " + activity.toString());
-    }
-
-    @Override
-    public void onActivityPaused(@NotNull Activity activity) {
-//        Log.d(TAG, "onActivityPaused - " +activity.toString());
-        changeStatus(activity);
-        Enumeration<Activity> keys = resumeActivities.keys();
-        int resumeCount = 0;
-        while(keys.hasMoreElements()) {
-            Activity a = keys.nextElement();
-            if (a == null) continue;
-            boolean isResume = resumeActivities.get(a);
-
-            if (isResume) {
-                resumeCount++;
-            }
-//            Log.d(TAG, a.toString() + " status(resume) = " + isResume);
-        }
-        if (resumeCount == 0) {
-//            Log.e(TAG, "force finish");
-//            finishApplication();
-            // TODO 사용자가 홈키로 나갈 경우 종료 ?
-        }
-    }
-
-    @Override
-    public void onActivityStopped(@NotNull Activity activity) {}
-
-    @Override
-    public void onActivitySaveInstanceState(@NotNull Activity activity, @NotNull Bundle outState) {}
-
-    @Override
-    public void onActivityDestroyed(@NotNull Activity activity) {
-        deleteTopActivity(activity);
-    }
 
 }

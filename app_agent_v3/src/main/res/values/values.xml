@@ -13,8 +13,8 @@
 	<integer name="SecuwayConnectRetryCnt">10</integer> <!-- vpn 연결 재시도 카운트 . 망의 속도에 따라 조절 해 주도록 하자.. -->
 	<integer name="SecuwayConnectRetryDelay">8000</integer> <!-- vpn 연결 재시도 딜레이 . 망의 속도에 따라 조절 해 주도록 하자.. -->
 
-	<string name="MagicMRSIP">125.60.21.148</string> <!-- 인증서 이동을 위한 기본 설정 정보 -->
-	<string name="MagicMRSIPIntra">125.60.21.135</string> <!-- 인트라넷(내부망) 서버 정보 -->
+	<string name="MagicMRSIP">C4A8F39A0FB4DCA8540A894D2F024ADA</string> <!-- 인증서 이동을 위한 기본 설정 정보 125.60.21.148 -->
+	<string name="MagicMRSIPIntra">6C6CCAB2FA4451B082DC00E16B9FA46E</string> <!-- 인트라넷(내부망) 서버 정보 125.60.21.135 -->
 	<string name="MagicMRSAppId">GPKIAPP</string>
 	<integer name="MagicMRSPort">10001</integer>
 	<integer name="MagicSignWrongPasswordCount">5</integer>

@@ -39,14 +39,14 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
 
     public VGuardSolution(Context context) {
         super(context);
-        Log.d(TAG, "V-Guard 초기화");
+        Log.d(TAG, "악성 코드 탐지 초기화");
         mVGRemote = new VGRemote(context, this);
     }
 
 
     @Override
     public void onBinded() {
-        Log.d(TAG, "V-Guard 초기화 성공 ");
+        Log.d(TAG, "악성 코드 탐지 초기화 - 성공 ");
         isBound.getAndSet(true);
     }
 
@@ -66,8 +66,7 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
         if (Objects.equals(action, VGRemote.SECYRITYACTION) && strThreatData != null) {
             try {
                 ThreatDetection.STATUS status = parse(strThreatData, true);
-                Result<ThreatDetection.STATUS> result = new Result<>(RESULT_CODE._OK);
-                result.out = status;
+                Result<ThreatDetection.STATUS> result = new Result<>(status);
                 // TODO 실시간으로 전달받은 메시지는 어떻게 처리할까 ???
                 Log.e(TAG, "실시간으로 전달받은 메시지는 아직 처리하지 않고 있음. (status = " + status + ")");
                 setResult(result);
@@ -93,7 +92,9 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
         String ret = mVGRemote.VGRunCMD(VGRemote.CMD_VG_PERMISSION);
         if ((resultCode = checkResultMessage(ret)) != ERROR_NONE) {
             applyPolicy = false;
-            return new Result<>(RESULT_CODE._INVALID, convertErrorMessage(resultCode));
+            // TODO 팝업 생성시 에러코드가 아닌 메시지를 보여줘야함.
+            // 재현, v-guard 권한 없을때 가능.
+            return new Result<>(RESULT_CODE._CANCEL, convertErrorMessage(resultCode));
         }
         if (applyPolicy) {
             Log.d(TAG, "STEP 2. V-Guard 정책이 이미 설정되어 있습니다.");
@@ -113,9 +114,8 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
         Log.d(TAG, "STEP 3. V-Guard 스캔을 시작합니다.");
         ret = mVGRemote.VGRunCMD(VGRemote.CMD_VG_SECURITY_THREAT);
         try {
-            Result<ThreatDetection.STATUS> result = new Result<>(RESULT_CODE._OK);
+            Result<ThreatDetection.STATUS> result = new Result<>(parse(ret));
             Log.d(TAG, "STEP 4. V-Guard 스캔 결과 확인");
-            result.out = parse(ret);
             return result;
         } catch (JSONException e) {
             throw new SolutionRuntimeException("응답 데이터 처리 중 에러가 발생하였습니다.", e);
@@ -143,7 +143,7 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
             // ERROR_SAVE_PERMISSION_NOT_GRANTED = 301;
             // ERROR_PHONE_PERMISSION_NOT_GRANTED = 302;
             // ERROR_VG_NOT_RUNNING = 303;
-            mVGRemote.VGRunCMD(VGRemote.CMD_VG_RUN);
+            String code = mVGRemote.VGRunCMD(VGRemote.CMD_VG_RUN);
             return ERROR_CMD_PERMISSION_NOT_GRANTED;
         } else if (errorCode > 400 && errorCode < 500) {
             // ERROR_JSONPARSING_FAIL
@@ -187,7 +187,7 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
         String VG_ENABLED_REALTIME_SCAN = "isRealtimeScanServiceEnable";
 
         for (String data : arrData) {
-            if (data.contains(VG_IS_CHECKED_MALWARE)) {
+            if                                                 (data.contains(VG_IS_CHECKED_MALWARE)) {
                 jsonObject = new JSONObject(data);
                 if (jsonObject.getBoolean(VG_IS_CHECKED_MALWARE)) {
                     Log.d(TAG, "종료 - 악성코드 존재");
