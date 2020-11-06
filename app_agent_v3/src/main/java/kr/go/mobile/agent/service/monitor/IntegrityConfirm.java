@@ -5,23 +5,21 @@ import android.content.Context;
 import kr.go.mobile.agent.solution.Solution;
 import kr.go.mobile.agent.solution.Solution.EventListener;
 import kr.go.mobile.agent.solution.SolutionManager;
-import kr.go.mobile.agent.utils.Log;
 
 public class IntegrityConfirm {
 
-
     public enum STATUS {
-        _UNKNOWN,
-        _VERIFIED,
-        _NOT_VERIFIED;
+        _UNKNOWN, // 무결성 검증 결과를 알 수 없음.
+        _VERIFIED, // 무결성 검증 성공
+        _NOT_VERIFIED; // 무결성 검증 실패
     }
 
     private STATUS status;
     private String agentToken;
     private String anotherToken;
-    private Solution<?, ?> integritySolution;
+    final private Solution<?, String> integritySolution;
 
-    public IntegrityConfirm(Context context, String solutionName, EventListener listener) throws SolutionManager.ModuleNotFoundException  {
+    public IntegrityConfirm(Context context, String solutionName, EventListener<String> listener) throws SolutionManager.ModuleNotFoundException  {
         status = STATUS._UNKNOWN;
         integritySolution = SolutionManager.initSolutionModule(context, solutionName);
         integritySolution.setDefaultEventListener(listener);

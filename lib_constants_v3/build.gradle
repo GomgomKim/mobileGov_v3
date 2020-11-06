@@ -1,26 +1,45 @@
 apply plugin: 'com.android.library'
 
 android {
+    ext.constants_version = '3.0.0'
+
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
-
 
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 29
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles 'consumer-rules.pro'
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
+    /**
+     * constants_v3 를 jar 파일로 생성하여 lib_common_v3 모듈에 import 한다.
+     **/
+    task deleteObjectJar(type: Delete) {
+        delete 'release/'
+    }
 
+    // release 폴더에 library 이름으로 jar 생성.
+    task exportJar(type: Copy){
+        // jar 파일 output path 는 안드로이드 스튜디오 버전에 따라서 변경될 수 있음.
+        from('build/intermediates/aar_main_jar/release/')
+        into('release/')
+        include('classes.jar')
+        rename('classes.jar', 'lib_constants_v3.0.0.jar')
+    }
 
+    task copyToConstantsLib(type: Copy) {
+        // lib_constants_v3 jar 파일을 import 함.
+        from('release/')
+        into('../lib_common_v3/libs/')
+        include('*.jar')
+    }
+
+    copyToConstantsLib.dependsOn(deleteObjectJar, build, exportJar)
 }
 

@@ -11,7 +11,9 @@ import org.json.JSONTokener;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.Set;
 
 import kr.go.mobile.common.v3.CommonBasedConstants;
 import kr.go.mobile.common.v3.hybrid.plugin.CBHybridPlugin;
@@ -25,17 +27,16 @@ import kr.go.mobile.common.v3.hybrid.plugin.CBHybridPluginResult;
 class CBHybridPluginManager {
 
     private static final String TAG = CBHybridPluginManager.class.getSimpleName();
-    private static final String METHOD_ASYNC = "async";
-    private Context mContext;
-    private HashMap<String, CBHybridPlugin> mPluginObjMap; //Native 객체
+    private static final String PRE_DEFINED_ASYNC_METHOD = "async";
+    private Context mCtxForHybridActivity;
     private HashMap<String, String> mPluginNameMap; //Native 객체 클래스명 정보
+    private HashMap<String, CBHybridPlugin> mPluginObjMap; //Native 객체
 
     public CBHybridPluginManager(Context context) {
-        mPluginObjMap = new HashMap<String, CBHybridPlugin>();
-        mPluginNameMap = new HashMap<String, String>();
-        mContext = context;
+        mPluginNameMap = new HashMap<>();
+        mPluginObjMap = new HashMap<>();
+        mCtxForHybridActivity = context;
     }
-
 
     /**
      * 플러그인 등록
@@ -139,12 +140,12 @@ class CBHybridPluginManager {
         }
 
         if (!mPluginObjMap.containsKey(callClassSimpleName)) {
-            Object newObj = null;
+            CBHybridPlugin newPluginObj = null;
             try {
-                Class<?> userClass = Class.forName(mPluginNameMap.get(callClassSimpleName));
-                newObj = userClass.getConstructor().newInstance();
-                ((CBHybridPlugin) newObj).init(mContext);
-                mPluginObjMap.put(callClassSimpleName, (CBHybridPlugin) newObj);
+                Class<? extends CBHybridPlugin> userClass = (Class<? extends CBHybridPlugin>) Class.forName(mPluginNameMap.get(callClassSimpleName));
+                Class<?>[] constructorParamsType = {Context.class};
+                newPluginObj = userClass.getConstructor(constructorParamsType).newInstance(mCtxForHybridActivity);
+                mPluginObjMap.put(callClassSimpleName, newPluginObj);
             } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
                 result = new CBHybridPluginResult("plugin 생성을 실패하였습니다. (cause = " + e.getMessage() +")");
                 result.setStatus(CommonBasedConstants.HYBRID_ERROR_NEW_INSTANCE);
@@ -161,7 +162,7 @@ class CBHybridPluginManager {
         //Method 호출
         //Method명에 async가 붙어있으면 비동기 호출로 인지하고 파라미터에 callbackID를 넘겨줌
         try {
-            if (callMethodName.toLowerCase().contains(METHOD_ASYNC)) {
+            if (callMethodName.toLowerCase().contains(PRE_DEFINED_ASYNC_METHOD)) {
                 if (jsonParam == null) {
                     method = plugin.getClass().getMethod(callMethodName, methodOneParamClass);
                     method.invoke(plugin, callbackID);
@@ -222,13 +223,48 @@ class CBHybridPluginManager {
      */
     public void sendCallback(String callbackID, CBHybridPluginResult result) {
         if (result == null || TextUtils.isEmpty(callbackID)) {
-            //호출 종류에 따라 callbackID가 없거나 result가 없는 경우 무시
+            //호출 종류에 따라 callbackID가 없거나 result 가 없는 경우 무시
             return;
         }
 
-        CBHybridActivity hybridActivity = (CBHybridActivity) mContext;
+        CBHybridActivity hybridActivity = (CBHybridActivity) mCtxForHybridActivity;
         if (!hybridActivity.isDestroyed()) {
             hybridActivity.loadUrl("javascript:CommonBaseAPI.CallbackManager.onCallback(\"" + callbackID + "\", " + result.toJsonString() + ")");
         }
     }
+
+
+    public void resume() {
+        Set<String> it = mPluginObjMap.keySet();
+        for (String name : it) {
+            CBHybridPlugin plugin = mPluginObjMap.get(name);
+            if(plugin != null)
+                plugin.onResume();
+        }
+        it.clear();
+    }
+
+    public void pause() {
+        Set<String> it = mPluginObjMap.keySet();
+        for (String name : it) {
+            CBHybridPlugin plugin = mPluginObjMap.get(name);
+            if(plugin != null)
+                plugin.onPause();
+        }
+        it.clear();
+    }
+
+    public void destroy() {
+        Set<String> it = mPluginObjMap.keySet();
+        for (String name : it) {
+            CBHybridPlugin plugin = mPluginObjMap.get(name);
+            if(plugin != null)
+                plugin.onDestroy();
+        }
+        it.clear();
+
+        mPluginObjMap.clear();
+        mPluginNameMap.clear();
+    }
+
 }

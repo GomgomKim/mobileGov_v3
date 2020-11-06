@@ -21,4 +21,33 @@
 
 	<integer name="RelayClientConnectionTimeOut">180000</integer>
 	<integer name="RelayClientReadTimeOut">180000</integer>
+
+	<string-array name="ldap_message_set">
+		<item>검증성공</item>
+		<item>조회 불가능한 LDAP 정보입니다.</item>
+		<item>/*정의되지 않은 상태 값 (2)*/</item>
+		<item>/*정의되지 않은 상태 값 (3)*/</item>
+		<item>/*정의되지 않은 상태 값 (4)*/</item>
+		<item>/*정의되지 않은 상태 값 (5)*/</item>
+		<item>/*정의되지 않은 상태 값 (6)*/</item>
+		<item>/*정의되지 않은 상태 값 (7)*/</item>
+		<item>/*정의되지 않은 상태 값 (8)*/</item>
+		<item>LDAP 인증실패하였습니다.</item>
+	</string-array>
+	<string-array name="cert_message_set">
+		<item>검증성공</item>
+		<item>폐지된 인증서입니다.</item>
+		<item>유효하지 않은 인증서입니다.</item>
+		<item>만료된 인증서입니다.</item>
+		<item>/*정의되지 않은 상태 값 (4)*/</item>
+		<item>/*정의되지 않은 상태 값 (5)*/</item>
+		<item>/*정의되지 않은 상태 값 (6)*/</item>
+		<item>/*정의되지 않은 상태 값 (7)*/</item>
+		<item>/*정의되지 않은 상태 값 (8)*/</item>
+		<item>인증서 확인에 실패하였습니다.</item>
+	</string-array>
+
+	<bool name="config_log_tc">true</bool>
+	<bool name="config_log_debug">true</bool>
+	<bool name="config_log_timestamp">true</bool>
 </resources>

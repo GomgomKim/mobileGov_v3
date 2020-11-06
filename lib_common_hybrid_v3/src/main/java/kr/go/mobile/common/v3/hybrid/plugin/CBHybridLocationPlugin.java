@@ -46,7 +46,6 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
     private static final int FIND_DEFAULT_MIN_DISTANCE = 100;
 
     private boolean isWaitReqPerFineLocation = true;
-    private CBHybridActivity mActivity;
     private LocationManager mLocationManager;
     private Timer mLocationUpdateTimer;
 
@@ -63,15 +62,36 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
     };
 
 
-    public CBHybridLocationPlugin() {
+    public CBHybridLocationPlugin(Context context) {
+        super(context);
+        ((CBHybridActivity)getActivity()).addRequestPermissionListener(REQ_PERMISSION_FINE_LOCATION, mRequestPermissionListener);
+        mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+    }
+
+
+    @Override
+    public String getVersionName() {
+        return "1.0.0";
+    }
+
+    @Override
+    public void onPause() {
 
     }
 
     @Override
-    public void init(Context context) {
-        mActivity = (CBHybridActivity) context;
-        mActivity.addRequestPermissionListener(REQ_PERMISSION_FINE_LOCATION, mRequestPermissionListener);
-        mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+    public void onResume() {
+
+    }
+
+    @Override
+    public void onDestroy() {
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+
     }
 
 
@@ -150,8 +170,8 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
 
                 mLocationUpdateTimer.cancel();
                 mLocationManager.removeUpdates(this);
-                if (!mActivity.isDestroyed()) {
-                    mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                if (!getActivity().isDestroyed()) {
+                    sendAsyncResult(callbackID, cbHybridPluginResult);
                 }
             }
 
@@ -200,8 +220,8 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
 
                 mLocationUpdateTimer.cancel();
                 mLocationManager.removeUpdates(this);
-                if (!mActivity.isDestroyed()) {
-                    mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                if (!getActivity().isDestroyed()) {
+                    sendAsyncResult(callbackID, cbHybridPluginResult);
                 }
             }
 
@@ -254,15 +274,15 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
             }
 
 
-            if (ContextCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                if (ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+            if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
                         Manifest.permission.ACCESS_FINE_LOCATION)) {
 
                     throw new CBHybridException(CommonBasedConstants.HYBRID_ERROR_PERMISSION_DENIED, "위치정보에 대한 권한이 허용되지 않았습니다.");
 
                 } else {
 
-                    ActivityCompat.requestPermissions(mActivity,
+                    ActivityCompat.requestPermissions(getActivity(),
                             new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                             REQ_PERMISSION_FINE_LOCATION);
 
@@ -277,7 +297,7 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
 
                     isWaitReqPerFineLocation = true;
 
-                    if (ContextCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         throw new CBHybridException(CommonBasedConstants.HYBRID_ERROR_PERMISSION_DENIED, "위치정보에 대한 권한이 허용되지 않았습니다.");
                     }
                 }
@@ -301,14 +321,14 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
     private void showLocationSettingDialog() {
         Log.d(TAG, "showLocationSettingDialog");
         AlertDialog alertDialog = null;
-        final AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(mActivity);
+        final AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(getContext());
         dialogBuilder.setMessage("위치정보가 사용안함 상태입니다.\n위치정보 설정을 변경하시겠습니까?");
         dialogBuilder.setCancelable(false);
         dialogBuilder.setPositiveButton("설정화면으로 이동", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 Intent gpsSettingIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                mActivity.startActivity(gpsSettingIntent);
+                startActivity(gpsSettingIntent);
             }
         });
         dialogBuilder.setNegativeButton("변경안함", new DialogInterface.OnClickListener() {
@@ -362,8 +382,8 @@ public class CBHybridLocationPlugin extends CBHybridPlugin {
             }
 
             //지정된 에러 코드 올리기
-            if (!mActivity.isDestroyed()) {
-                mActivity.sendAsyncResult(this.callbackID, cbHybridPluginResult);
+            if (!getActivity().isDestroyed()) {
+                sendAsyncResult(this.callbackID, cbHybridPluginResult);
             }
         }
     }

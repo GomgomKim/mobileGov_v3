@@ -19,18 +19,18 @@ public class SolutionManager {
     public static String SSL_VPN = SecuwizVPNSolution.class.getCanonicalName();
     public static String EVER_SAFE = EverSafeSolution.class.getCanonicalName();
     public static String DREAM_SECURITY_GPKI_LOGIN = MagicLineClientSolution.class.getCanonicalName();
-    public static String PUSH = DKI_LocalPushSolution.class.getCanonicalName();
+    public static String LOCAL_PUSH = DKI_LocalPushSolution.class.getCanonicalName();
 
-    static Map<String, Solution<?, ?>> managerMap = new HashMap<>();
+    static Map<String, Solution<? , ?>> managerMap = new HashMap<>();
 
-    public static synchronized Solution<?, ?> getSolutionModule(String name) throws ModuleNotFoundException {
+    public static synchronized <T extends Solution<?, ?>> T getSolutionModule(String name) throws ModuleNotFoundException {
         if (managerMap.containsKey(name)) {
-            return managerMap.get(name);
+            return (T) managerMap.get(name);
         }
         throw new ModuleNotFoundException(name);
     }
 
-    public static synchronized Solution<?, ?> initSolutionModule(Context context, String name) throws ModuleNotFoundException {
+    public static synchronized <T extends Solution<?, ?>> T initSolutionModule(Context context, String name) throws ModuleNotFoundException {
         try {
             return getSolutionModule(name);
         } catch (ModuleNotFoundException e1) {
@@ -40,7 +40,7 @@ public class SolutionManager {
                 Constructor<?> constructor = solutionClass.getConstructor(paramsTypes);
                 Solution<?, ?> ret = (Solution<?, ?>) constructor.newInstance(context);
                 managerMap.put(name, ret);
-                return ret;
+                return (T) ret;
             } catch (Exception e) {
                 throw new ModuleNotFoundException(name, e);
             }

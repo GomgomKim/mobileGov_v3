@@ -1,11 +1,10 @@
 package kr.go.mobile.agent.network;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.os.Build;
-import android.os.RemoteException;
+import android.os.IBinder;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -13,22 +12,17 @@ import android.view.WindowManager;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
@@ -39,30 +33,34 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import kr.go.mobile.agent.service.broker.BrokerResponse;
+import kr.go.mobile.agent.service.broker.DownloadFile;
 import kr.go.mobile.agent.service.broker.IBrokerServiceCallback;
-
 import kr.go.mobile.agent.service.broker.MethodResponse;
-import kr.go.mobile.agent.utils.FileUtils;
 import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.common.v3.CommonBasedConstants;
+import kr.go.mobile.mobp.iff.BuildConfig;
 import kr.go.mobile.mobp.iff.R;
-import okhttp3.Interceptor;
-import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
-import retrofit2.CallAdapter;
-import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 
+/**
+ * Retrofit2 을 이용한 중계 클라이언트 구현<br>
+ * build 및 인터페이스 연동
+ *
+ * @author Tom
+ * @since 2020.09.14
+ * @version 1.0
+ */
 public class RelayClient {
 
+    // RelayClient 를 생성하기 위한 Builder
     public static class Builder {
 
         private final Context baseContext;
@@ -74,7 +72,6 @@ public class RelayClient {
         private SecureRandom secureRandom;
         private String userId;
         private String officeName;
-        private String officeCode;
 
         public Builder(Context baseContext, String baseURL) {
             this.baseContext = baseContext;
@@ -116,24 +113,18 @@ public class RelayClient {
             return this;
         }
 
+        public RelayClient build() throws KeyManagementException,
+                NoSuchAlgorithmException, MalformedURLException {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManager, trustAllCerts, secureRandom);
 
-        public Builder setOfficeCode(String officeCode) {
-            this.officeCode = officeCode;
-            return this;
+            return new RelayClient(baseContext, new URL(baseUrl), genDefaultAgentDetail(),
+                    connTimeout, readTimeout,
+                    sslContext, trustAllCerts);
         }
 
-        private Map<String, String> generatorMOBPHeader()
-                throws MalformedURLException, PackageManager.NameNotFoundException, UnsupportedEncodingException {
-            Map<String, String> defaultHeaders = new HashMap<>();
-            URL url = new URL(baseUrl);
-            defaultHeaders.put("Host", url.getHost() + (url.getPort() > 0 ? ":"+url.getPort() : ""));
-//            defaultHeaders.put("Service-Id", this.serviceId);
-            defaultHeaders.put("X-Agent-Detail", URLEncoder.encode(getAgentDetail(), "UTF-8"));
-            return defaultHeaders;
-        }
+        private String genDefaultAgentDetail() {
 
-        String getAgentDetail() throws PackageManager.NameNotFoundException {
-            PackageInfo info = baseContext.getPackageManager().getPackageInfo(baseContext.getPackageName(), PackageManager.GET_META_DATA);
             Display display = ((WindowManager) baseContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 
             Point pt = new Point();
@@ -155,103 +146,38 @@ public class RelayClient {
                 dpi = "LDPI";
             }
             String uuid = Settings.Secure.getString(baseContext.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-            String FORMAT = ";FLD=I;PK=%s;AV=%s;OT=%s;OV=%s;RV=%s;DW=%s;DH=%s;DPI=%s;TD=N;UD=%s,UI=%s;OC=%s;OG=%s;MD=%s";
-            String versionCode;
-            StringBuilder agentDetail = new StringBuilder();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                versionCode = Long.toString(info.getLongVersionCode());
-            } else {
-                versionCode = Integer.toString(info.versionCode);
-            }
-            agentDetail.append(String.format(FORMAT,
-                    info.packageName,
-                    versionCode,
+
+
+            return String.format(";OT=%s;OV=%s;RV=%s;DW=%s;DH=%s;DPI=%s;TD=N;UD=%s;UI=%s;OC=%s;OG=%s;MD=%s;FLD=I",
                     "A"/*OS_TYPE*/,
-                    android.os.Build.VERSION.RELEASE/*OS_VERSION*/,
+                    Build.VERSION.RELEASE/*OS_VERSION*/,
                     "0"/*RESOURCE_VERSION*/,
                     pt.x /*DISPLAY_WIDTH*/,
                     pt.y /*DISPLAY_HEIGHT*/,
                     dpi /*DISPLAY_DENSITY_DPI*/,
                     uuid,
                     userId,
-                    officeCode,
+                    "0000000" /*default value*/,
                     officeName,
-                    android.os.Build.DEVICE));
-            return agentDetail.toString();
+                    Build.DEVICE);
         }
-
-        public RelayClient build() throws KeyManagementException, NoSuchAlgorithmException, UnsupportedEncodingException,
-                PackageManager.NameNotFoundException, MalformedURLException {
-            return build(true);
-        }
-
-        public RelayClient build(boolean enabledLog) throws KeyManagementException,
-                NoSuchAlgorithmException, UnsupportedEncodingException,
-                PackageManager.NameNotFoundException, MalformedURLException {
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(keyManager, trustAllCerts, secureRandom);
-
-            RelayClient client = new RelayClient(enabledLog, baseContext, baseUrl, generatorMOBPHeader(),
-                    connTimeout, readTimeout,
-                    sslContext, trustAllCerts);
-
-
-            // TODO
-            return client;
-        }
-/*
-        generateHeaders = new GenerateHeaders();
-//        try {
-//            client.setOkHttpClient(nConnectTimeOut, nReadTimeOut);
-//            client.buildClient();
-//            generateHeaders.setUrl(new URL(baseURL));
-//        } catch (MalformedURLException e) {
-//            throw new RuntimeException("중계 서버 URL 정보가 잘못되었습니다.", e);
-//        } catch (NoSuchAlgorithmException | KeyManagementException e) {
-//            throw new RuntimeException("중계 서버와 통신할 클라이언트 초기화를 할 수 없습니다.", e);
-//        }
-        try {
-            generateHeaders.setAgentDetail(this,
-                    signed.getUserID(),
-                    signed.getOfficeName(),
-                    signed.getOfficeCode());
-
-        } catch (UnsupportedEncodingException e){
-            throw new RuntimeException("지원하지 않는 인코딩 타입입니다.", e);
-        } catch (PackageManager.NameNotFoundException e){
-            throw new RuntimeException("단말 정보를 획득할 수 없습니다.", e);
-        }
-//        client = new RelayClient(getBaseContext(), baseURL);
- */
     }
 
-    /*
-    Tom 200914
-    Retrofit2 - build 및 인터페이스 연동
-    user auth data request, return
-     */
     private final static String TAG = RelayClient.class.getSimpleName();
-    private final String BROKER_ERROR_PROC_DATA_STRING = "데이터 요청에 대한 응답데이터 처리 중 에러가 발생하였습니다.";
-    private final String BROKER_ERROR_HTTP_RESPONSE_STRING = "서버 응답 에러가 발생했습니다. 서비스 관리에게 문의하시기 바랍니다.";
-    private final String BROKER_ERROR_RESP_COMMON_DATA_STRING = "공통기반 시스템 에러입니다. 공통기반 운영단에 문의하시기 바랍니다.";
-    private final String BROKER_ERROR_REQUEST_FORM_STRING = "요청 데이터 형식 오류입니다.";
 
-    Context context;
-    String baseURL;
-    Retrofit retrofit;
-    RelayInterface relayInterface;
-    Map<String, String> defaultMOBPHeader;
+    final Context context;
+    final String baseHost;
+    final RelayClientInterface relayClientInterface;
+    String defaultHeaderAgentDetail;
 
-    RelayClient(boolean enabledLog, Context context, String baseURL, Map<String, String> header, int connectTimeout, int readTimeout,
-                SSLContext sslContext, TrustManager[] trustAllCerts) {
+    private RelayClient(Context context, URL baseURL, String headerAgentDetail,
+                        int connectTimeout, int readTimeout, SSLContext sslContext, TrustManager[] trustAllCerts) {
 
         this.context = context;
-        this.baseURL = baseURL;
-        this.defaultMOBPHeader = header;
+        this.baseHost = baseURL.getHost() + (baseURL.getPort() > 0 ? ":"+baseURL.getPort() : "");
+        this.defaultHeaderAgentDetail = headerAgentDetail;
 
-        /*
-        okHttp 설정
-         */
+        // okHttp 설정
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
                 .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
@@ -263,246 +189,250 @@ public class RelayClient {
                     }
                 });
 
-        if (enabledLog) {
+        if (BuildConfig.DEBUG) {
             // 통신 중 일어나는 로그를 인터셉트하는 Interceptor
-            HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor();
+            HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
+                @Override
+                public void log(@NotNull String log) {
+                    Log.d("RelayClientHttp-Log", log);
+                }
+            });
             logInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
             builder.addInterceptor(logInterceptor); // 로그 활성화
-    }
-        OkHttpClient okHttpClient = builder.build();
+        }
 
         // using Json
-        retrofit = new Retrofit.Builder()
-                .baseUrl(baseURL)
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseURL.toString())
                 .addConverterFactory(ScalarsConverterFactory.create())
-                .client(okHttpClient)
+                .client(builder.build())
                 .build();
 
         // 레트로핏 객체에 관리 인터페이스 연결
-        relayInterface = retrofit.create(RelayInterface.class);
-        // using Gson
-        /*
-        Gson gson = new GsonBuilder()
-                .setLenient()
-                .create();
+        relayClientInterface = retrofit.create(RelayClientInterface.class);
+    }
 
-        retrofit = new Retrofit.Builder()
-                .baseUrl(baseURL)
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .client(okHttpClient)
+
+    // 인증서버로부터 획득한 기관코드 값을 설정한다.
+    public void setOfficeCode(String officeCode) {
+        // ex. OC=0000000 -> OC=1741000
+        defaultHeaderAgentDetail = defaultHeaderAgentDetail.replace("OC=0000000", "OC=" + officeCode);
+        Log.TC("공통기반 시스템 통신 준비");
+    }
+
+    // 행정 서비스 인터페이스 연결 (공통기반 라이브러리의 기본 기능)
+    public void relayDefault(String reqPackageInfo, String serviceId, String body, final IBrokerServiceCallback callback) throws UnsupportedEncodingException {
+        Log.i(TAG, "행정 서비스 요청 : " + reqPackageInfo + ", ServiceId : " + serviceId);
+        String encAgentDetail = getHeaderAgentDetail(reqPackageInfo);;
+        RequestBody requestBody = new RelayRequestBody.DefaultBuilder()
+                .setServiceParams(body)
                 .build();
-        */
+
+        Call<ResponseBody> call = relayClientInterface.callDefault(serviceId, baseHost, encAgentDetail, requestBody);
+        Log.TC("클라이언트 >>(기관 서비스 요청)>> 서버");
+        call.enqueue(new RelayClientCallback(context, RelayResponseParser.RESULT_TYPE.DEFAULT, callback));
     }
 
+    // 사용자 인증정보 요청 (공통기반 라이브러리에서는 사용 못함)
+    public void relayUserAuth(String reqPackageInfo, String base64, final IBrokerServiceCallback callback) throws UnsupportedEncodingException, JSONException {
+        Log.i(TAG, "사용자 인증 요청 : " + reqPackageInfo);
+        String encAgentDetail = getHeaderAgentDetail(reqPackageInfo);
+        RequestBody requestBody = new RelayRequestBody.AuthBuilder()
+                .setSigned(base64)
+                .build();
 
-    /*
-   행정 서비스 인터페이스 연결
-    */
-    public void relayReqData(String serviceId, String body, final IBrokerServiceCallback callback) {
-        Log.d(TAG, "[relayReqData] serviceId = " + serviceId + ", Body = " + body);
-
-        byte[] byte_body = body.getBytes(StandardCharsets.UTF_8);
-        RequestBody req_body = RequestBody.create(MediaType.parse("application/octet-stream"), byte_body);
-
-        Call<ResponseBody> call = relayInterface.callDefault(serviceId, defaultMOBPHeader, req_body);
-        call.enqueue(new RelayClientCallback(context, ResultParser.RESULT_TYPE.DEFAULT, callback));
+        Call<ResponseBody> call = relayClientInterface.callAuth(baseHost, encAgentDetail, requestBody);
+        Log.TC("클라이언트 >>(사용자 인증 요청)>> 서버");
+        call.enqueue(new RelayClientCallback(context, RelayResponseParser.RESULT_TYPE.AUTHENTICATION, callback));
     }
 
-    /*
-    사용자 인증정보 인터페이스 연결
-     */
-    public void relayUserAuth(String body, final IBrokerServiceCallback callback) {
-        Log.d(TAG, "[relayUserAuth] Body = " + body);
+    // 문서 변환 요청
+    public void relayLoadConvertedDoc(String reqPackageInfo, String body, final IBrokerServiceCallback callback) throws UnsupportedEncodingException {
+        Log.i(TAG, "문서변환 요청 : " + reqPackageInfo);
 
-        byte[] byte_body = body.getBytes(StandardCharsets.UTF_8);
-        RequestBody req_body = RequestBody.create(MediaType.parse("application/octet-stream"), byte_body);
+        String encodeHeader = getHeaderAgentDetail(reqPackageInfo);
+        RequestBody requestBody = new RelayRequestBody.DefaultBuilder()
+                .setServiceParams(body)
+                .build();
 
-        // 결과 콜백 부분 - using Json
-        Call<ResponseBody> call = relayInterface.callAuth(defaultMOBPHeader, req_body);
-        call.enqueue(new RelayClientCallback(context, ResultParser.RESULT_TYPE.AUTHENTICATION, callback));
-                    }
+        Call<ResponseBody> call = relayClientInterface.callLoadDocument(baseHost, encodeHeader, requestBody);
+        Log.TC("클라이언트 >>(문서변환)>> 서버");
+        call.enqueue(new RelayClientCallback(context, RelayResponseParser.RESULT_TYPE.DOCUMENT, callback));
+    }
 
-    /*
-    문서 변환 요청
-    */
-    public void relayLoadConvertedDoc(String body, final IBrokerServiceCallback callback) {
-        Log.d(TAG, "[relayLoadConvertedDoc] Body = " + body);
+    // 파일업로드
+    public BrokerResponse<?> relayUploadData(String reqPackageInfo, String boundaryId, String body,
+                                          String relayUrl, String fileName, byte[] uploadBytes) throws IOException {
+        Log.i(TAG, "업로드 요청 : " + reqPackageInfo);
 
-        byte[] byte_body = body.getBytes(StandardCharsets.UTF_8);
-        RequestBody req_body = RequestBody.create(MediaType.parse("application/octet-stream"), byte_body);
+        RelayRequestBody.MultiPartBuilder builder = new RelayRequestBody.MultiPartBuilder(boundaryId)
+                .setUploadURL(relayUrl)
+                .addFile(fileName, uploadBytes)
+                .addParam("file", fileName);
 
-        // 결과 콜백 부분 - using Json
-        Call<ResponseBody> call = relayInterface.callLoadDocument(defaultMOBPHeader, req_body);
-        call.enqueue(new RelayClientCallback(context, ResultParser.RESULT_TYPE.DOCUMENT, callback));
-                            }
-
-                /*
-   파일업로드
-    */
-    public void relayUploadData(String boundaryId, String body, String fileName, byte[] uploadBytes, final IBrokerServiceCallback callback) {
-        Log.d(TAG, "[relayUploadData] fileName = " + fileName + ", fileLength =  " + uploadBytes.length  + ", Body = " + body);
-        final long startTime = System.currentTimeMillis();
-
-        MultipartBody multipartBody;
-        {
-            MultipartBody.Builder builder = new MultipartBody.Builder(boundaryId);
-            builder.setType(MultipartBody.FORM);
-            // TODO localFile 이 아닌 byte[] 값을 사용하도록 변경 필요 또는 ContentProvider 를 이용하여 파일 접근이 가능한 환경 만들기.
-            RequestBody rqFile = RequestBody.create(MediaType.parse("application/octet-stream"), uploadBytes);
-            builder.addFormDataPart("file", fileName, rqFile);
-
-            String[] tmp = body.split("[&]");
-            for (String bodyParams : tmp) {
-                String[] splitData = bodyParams.trim().split("[=]");
-                if (splitData.length == 1) {
-                    builder.addFormDataPart(splitData[0], "");
-                } else {
-                    builder.addFormDataPart(splitData[0], splitData[1]);
-                }
+        String[] tmp = body.split("[&]");
+        for (String bodyParams : tmp) {
+            String[] splitData = bodyParams.trim().split("[=]");
+            if (splitData.length == 1) {
+                builder.addParam(splitData[0]);
+            } else {
+                builder.addParam(splitData[0], splitData[1]);
             }
-            multipartBody = builder.build();
         }
 
-        /*
-        결과 콜백 부분
-         */
-        Call<ResponseBody> call = relayInterface.callUpload(boundaryId, defaultMOBPHeader, multipartBody);
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NotNull Call<ResponseBody> call, @NotNull Response<ResponseBody> response) {
-             /*
-               서버로부터 응답 데이터가 왔을 때
-              */
-                Log.timeStamp("relayReqData");
-                Log.d(TAG, "enqueue onResponse : call - "+call+" / response - "+response);
-                Log.d(TAG, "Result Message : " + response.message());
+        String encAgentDetail = getHeaderAgentDetail(reqPackageInfo);
+        MultipartBody multipartBody = builder.build();
+        String multipartContent = builder.getContentType();
 
-                BrokerResponse<?> resp;
-                if(response.isSuccessful()) {
-                    // http code : 2xx 통신 성공
+        Call<ResponseBody> call = relayClientInterface.callUpload(multipartContent, baseHost, encAgentDetail, multipartBody);
 
-                    try {
-                        // TODO
-                        MethodResponse respData = ResultParser.parse(ResultParser.RESULT_TYPE.DEFAULT, response);
-                        if (respData.result.equals("1")) {
-                            // 데이터가 정상적으로 수신된 경우
+        long beginTime = System.currentTimeMillis();
+        Log.TC("클라이언트 >>(업로드 요청)>> 서버");
+        Response<ResponseBody> response = call.execute();
+        long endTime = System.currentTimeMillis();
 
-                            // 업로드 결과 전송
-                            long endTime = System.currentTimeMillis();
-                            /*
-                            File file = new File(filePath);
-                            long size = file.length();
-                            String fileName = FileUtils.getFileName(filePath);
-                            Log.d(TAG, "파일명 :: " + fileName);
-                            String fileExt = FileUtils.getExtension(filePath);
-                            Log.d(TAG, "확장자 :: " + fileExt);
-                            String data =  kr.go.mobile.agent.utils.FileUtils.makeFileRespData(fileName, fileExt, size + "", startTime, endTime);
+        BrokerResponse<?> brokerResponse = handleResponse(response);
+        Log.TC("서버 >> 응답데이터 -> 객체변환");
+        try {
+            sendReport(encAgentDetail, fileName, uploadBytes.length, beginTime, endTime);
+        } catch (JSONException e) {
+            Log.e(TAG, "업로드 결과 보고서를 생성할 수 없습니다.", e);
+        }
 
-                            Log.d(TAG, "Result data : " + data);
-                             */
-                            // TODO 공통기반 시스템으로 파일 업로드에 대한 레포트 정보를 전달한다.
-                            resp = new BrokerResponse<>(respData);
-
-                        } else {
-                            Log.e(TAG, context.getString(R.string.BROKER_ERROR_RELAY_SERVER)
-                                    + "(message : " + respData.relayServerMessage+ ", code : "+respData.relayServerCode +")");
-                            resp = new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_RELAY_SERVER, context.getString(R.string.BROKER_ERROR_RELAY_SERVER)
-                                    + "(message : " + respData.relayServerMessage+ ", code : "+respData.relayServerCode +")");
-                        }
-                    } catch (IOException | JSONException e) {
-                        /*
-                        1. 응답데이터의 body가 잘못온 경우
-                        2. JSON 파싱 중 오류
-                         */
-                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING + "(" + e.getMessage() + ")", e);
-                        resp = new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_PROC_DATA,
-                                BROKER_ERROR_PROC_DATA_STRING + "(" + e.getMessage() + ")");
-                    }
-
-                } else {
-                    // http 오류 코드 응답 (ex. 4.. 5..)
-                    Log.e(TAG, BROKER_ERROR_HTTP_RESPONSE_STRING + " (HTTP 상태코드 : " + response.code() + ")");
-                    resp = new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_HTTP_RESPONSE,
-                            BROKER_ERROR_HTTP_RESPONSE_STRING + " (HTTP 상태코드 : " + response.code() + ")");
-                }
-
-                try {
-                    callback.onResponse(resp);
-                } catch (RemoteException e) {
-                    //TODO 이부분은 개발자가 정의한 onFailure 에서 데이터를 처리하다가 RemoteException 을 줘야지 받을 수 있는 부분인데
-                    //만약, 개발자가 응답 데이터를 받았는데 에러가 발생해서 RemoteException 을 준다고하면, 에이전트에서는 어떻게 처리해야할까요 ?
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                /*
-                Exception으로 인해 서버로부터 응답 데이터를 받지 못했을 때
-                 */
-                Log.e(TAG, "서비스 ID를 이용한 데이터 요청 실패  : call - "+call, t);
-                try {
-                    if(t instanceof IOException){
-                        // 네트워크 오류 - 통신이 불가능한 경우(WIFI미접속 등)
-                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
-                        callback.onFailure(CommonBasedConstants.BROKER_ERROR_PROC_DATA, BROKER_ERROR_PROC_DATA_STRING);
-                    } else {
-                        // 요청데이터의 형식이 잘못된 경우
-                        Log.e(TAG, BROKER_ERROR_PROC_DATA_STRING +  "(" + t.getMessage() + ")");
-                        callback.onFailure(CommonBasedConstants.BROKER_ERROR_REQUEST_FORM, BROKER_ERROR_REQUEST_FORM_STRING);
-                    }
-                } catch (RemoteException ignore) {
-                    // TODO 이부분은 개발자가 정의한 onFailure 에서 데이터를 처리하다가 RemoteException 을 줘야지 받을 수 있는 부분인데...
-                    // 만약, 개발자가 응답 데이터를 받았는데 에러가 발생해서 RemoteException 을 준다고하면, 에이전트에서는 어떻게 처리해야할까요 ?
-                }
-            }
-        });
+        return brokerResponse;
     }
 
+    // 파일 다운로드
+    public BrokerResponse<?> relayDownloadData(String reqPackageInfo, String body,
+                                               String relayUrl, OutputStream outputStream) throws IOException {
+        Log.i(TAG, "다운로드 요청 : " + reqPackageInfo);
 
+        RequestBody requestBody = new RelayRequestBody.DownloadBuilder()
+                .setDownloadURL(relayUrl)
+                .setServiceParams(body)
+                .build();
 
+        String encAgentDetail = getHeaderAgentDetail(reqPackageInfo);
 
-    // using Gson
-        /*
-        Call<AuthModel> call = userAuthDataInterface.getReqData(headers, req_body);
-        call.enqueue(new Callback<AuthModel>() {
+        Call<ResponseBody> call = relayClientInterface.callDownload(baseHost, encAgentDetail, requestBody);
+
+        long beginTime = System.currentTimeMillis();
+        Log.TC("클라이언트 >>(다운로드 요청)>> 서버");
+        Response<ResponseBody> response = call.execute();
+        long endTime = System.currentTimeMillis();
+
+        BrokerResponse<?> brokerResponse = handleResponse(response, outputStream);
+        Log.TC("서버 >> 응답데이터 -> 객체변환");
+        try {
+            JSONObject o = new JSONObject(brokerResponse.getResult().getServiceServerResponse());
+            sendReport(encAgentDetail, o.getString("filename"), o.getInt("size"), beginTime, endTime);
+        } catch (JSONException e) {
+            Log.e(TAG, "다운로드 결과 보고서를 생성할 수 없습니다.", e);
+        }
+
+        return brokerResponse;
+    }
+
+    private String getHeaderAgentDetail(String reqPackageInfo) throws UnsupportedEncodingException {
+        return URLEncoder.encode(reqPackageInfo + defaultHeaderAgentDetail, "UTF-8");
+    }
+
+    private BrokerResponse<?> handleResponse(Response<ResponseBody> response) {
+        return handleResponse(response, null);
+    }
+
+    private BrokerResponse<?> handleResponse(Response<ResponseBody> response, OutputStream out) {
+        if(response.isSuccessful()) {
+            try {
+                MethodResponse respData;
+                if (out == null) {
+                    // upload (default)
+                    respData = RelayResponseParser.parse(RelayResponseParser.RESULT_TYPE.DEFAULT, response);
+                } else {
+                    // download
+                    respData = RelayResponseParser.parse(RelayResponseParser.RESULT_TYPE.DOWNLOAD, response);
+                }
+                if (respData.relayServerOK()) {
+                    if (respData instanceof DownloadFile) {
+                        if (out != null) {
+                            DownloadFile downloadFile = (DownloadFile) respData;
+                            try {
+                                out.write(respData.getResponseBytes(), 0, downloadFile.getContentLength());
+                                out.flush();
+                            } catch (IOException e) {
+                                Log.e(TAG+"-syncHandler", "응답 데이터를 이용하여 파일 생성 중 에러가 발생하였습니다." + "(" + e.getMessage() + ")", e);
+                                return new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_INVALID_RESPONSE,
+                                        "응답 데이터를 이용하여 파일 생성 중 에러가 발생하였습니다." + "(" + e.getMessage() + ")");
+                            } finally {
+                                try {
+                                    out.close();
+                                } catch (IOException ignored) {
+                                }
+                            }
+                            MethodResponse tmpResp = new MethodResponse();
+                            tmpResp.setServiceServerResponse(downloadFile.getServiceServerResponse());
+                            return new BrokerResponse<>(tmpResp);
+                        } else {
+                            Log.e(TAG+"-syncHandler", "응답 데이터를 이용하여 파일 생성 중 에러가 발생하였습니다. (output = null)");
+                            return new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_INVALID_RESPONSE,
+                                    "응답 데이터를 이용하여 파일 생성 중 에러가 발생하였습니다. (output = null)");
+                        }
+                    } else {
+                        return new BrokerResponse<>(respData);
+                    }
+                } else {
+                    Log.e(TAG+"-syncHandler", context.getString(R.string.BROKER_ERROR_RELAY_SERVER)
+                            + "(message : " + respData.getRelayServerMessage() + ", code : " + respData.getRelayServerCode() + ")");
+                    return new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_RELAY_SYSTEM, context.getString(R.string.BROKER_ERROR_RELAY_SERVER)
+                            + "(message : " + respData.getRelayServerMessage() + ", code : " + respData.getRelayServerCode() + ")");
+                }
+            } catch (JSONException | IOException e) {
+                 /*
+                1. 응답데이터의 body가 잘못온 경우
+                2. JSON 파싱 중 오류
+                 */
+                Log.e(TAG+"-syncHandler", context.getString(R.string.BROKER_ERROR_PROC_DATA_STRING) + "(" + e.getMessage() + ")", e);
+                return new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_INVALID_RESPONSE,
+                        context.getString(R.string.BROKER_ERROR_PROC_DATA_STRING) + "(" + e.getMessage() + ")");
+            }
+        } else {
+            // http 오류 코드 응답 (ex. 4.. 5..)
+            Log.e(TAG+"-syncHandler", context.getString(R.string.BROKER_ERROR_HTTP_RESPONSE_STRING) + " (HTTP 상태코드 : " + response.code() + ")");
+            return new BrokerResponse<>(CommonBasedConstants.BROKER_ERROR_SERVICE_SERVER,
+                    context.getString(R.string.BROKER_ERROR_HTTP_RESPONSE_STRING) + " (HTTP 상태코드 : " + response.code() + ")");
+        }
+    }
+
+    // 파일 다운로드 / 업로드에 대한 결과 보고서 전송
+    private void sendReport(String encAgentDetail, String fileName, int fileSize, long beginTime, long endTime) throws JSONException {
+        RequestBody requestBody = new RelayRequestBody.ReportBuilder()
+                .setFileName(fileName)
+                .setFileSize(fileSize)
+                .setBeginTime(beginTime)
+                .setEndTime(endTime)
+                .build();
+
+        Call<ResponseBody> call = relayClientInterface.callReportUpload(baseHost, encAgentDetail, requestBody);
+        call.enqueue(new RelayClientCallback(context, RelayResponseParser.RESULT_TYPE.REPORT, new IBrokerServiceCallback() {
+
             @Override
-            public void onResponse(Call<AuthModel> call, Response<AuthModel> response) {
-                Log.d(TAG, "enqueue onResponse : call - "+call+" / response - "+response);
-
-                AuthModel result = response.body();
-
-//                String dn = result.getMethodResponse().getData().getDn();
-//                Log.d(TAG, "result : dn - "+dn);
-
-                String message = response.message();
-                BrokerResponse resp;
-                try {
-                    resp = new BrokerResponse(0, message, result);
-                } catch (Exception e) {
-                    resp = new BrokerResponse(0, "인증서 만료", result);
-                }
-
-                try {
-                    callback.onResponse(resp);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-
+            public IBinder asBinder() {
+                return null;
             }
 
             @Override
-            public void onFailure(Call<AuthModel> call, Throwable t) {
-                Log.d(TAG, "enqueue onFailure : code - "+call+" / msg - "+t);
-                try {
-                    callback.onFailure(-1, "라이브러리 오류");
-                } catch (RemoteException e) {
-                    e.printStackTrace();
+            public void onResponse(BrokerResponse response) {
+                if(response.ok()) {
+                    Log.d(TAG+"-Report", "업로드 레포트 업데이트 성공");
+                } else {
+                    Log.w(TAG+"-Report", "업로드 레포트 업데이트 실패");
                 }
             }
-        });
-        */
 
-
-
-
+            @Override
+            public void onFailure(int code, String msg) {
+                Log.e(TAG+"-Report", "업로드 레포트 업데이트시 에러: " + msg);
+            }
+        }));
+    }
 }

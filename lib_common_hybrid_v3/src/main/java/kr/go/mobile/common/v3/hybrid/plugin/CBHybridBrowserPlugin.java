@@ -2,6 +2,7 @@ package kr.go.mobile.common.v3.hybrid.plugin;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -18,7 +19,6 @@ import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import kr.go.mobile.common.v3.CommonBasedConstants;
-import kr.go.mobile.common.v3.hybrid.CBHybridActivity;
 import kr.go.mobile.common.v3.hybrid.CBHybridDialog;
 
 
@@ -31,26 +31,46 @@ public class CBHybridBrowserPlugin extends CBHybridPlugin {
 
     private static final String TAG = CBHybridBrowserPlugin.class.getSimpleName();
 
-    private CBHybridActivity mActivity;
     private CBHybridDialog mAlertDialog;
     private Timer mDialogTimer;
     private List<String> mCallbackList;
 
-    public CBHybridBrowserPlugin() {
 
-    }
-
-    @Override
-    public void init(Context context) {
-        mActivity = (CBHybridActivity) context;
+    public CBHybridBrowserPlugin(Context context) {
+        super(context);
         mCallbackList = new ArrayList<String>();
-        mAlertDialog = new CBHybridDialog(mActivity);
+        mAlertDialog = new CBHybridDialog(getContext());
         mAlertDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
             @Override
             public void onCancel(DialogInterface dialogInterface) {
                 dismissAlertDialog();
             }
         });
+    }
+
+    @Override
+    public String getVersionName() {
+        return "1.0.0";
+    }
+
+    @Override
+    public void onPause() {
+
+    }
+
+    @Override
+    public void onResume() {
+
+    }
+
+    @Override
+    public void onDestroy() {
+        stopLoadingBar();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+
     }
 
     /**
@@ -138,7 +158,7 @@ public class CBHybridBrowserPlugin extends CBHybridPlugin {
     public void terminateApp() {
         Log.d(TAG, "terminateApp");
         //액티비티만 있는 경우에는 완전히 종료됨
-        ActivityCompat.finishAffinity(mActivity);
+        ActivityCompat.finishAffinity(getActivity());
         //TODO 가상화 에이전트와 바인드된 부분 중단 필요
 
         //실행중인 서비스가 있는 경우 아래 코드를 불려야 서비스가 종료되나 프로세스는 살아남(Application onCreate됨)
@@ -160,14 +180,14 @@ public class CBHybridBrowserPlugin extends CBHybridPlugin {
                 if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_BACK && keyEvent.getAction() == KeyEvent.ACTION_DOWN) {
                     CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult("");
                     cbHybridPluginResult.setKeepCallback(true);
-                    mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                    sendAsyncResult(callbackID, cbHybridPluginResult);
                     return true;
                 }
                 return false;
             }
         };
 
-        mActivity.setWebViewOnKeyListener(keyListener);
+        setWebViewOnKeyListener(keyListener);
     }
 
     /**
@@ -176,13 +196,13 @@ public class CBHybridBrowserPlugin extends CBHybridPlugin {
     public void removeBackKeyListener() {
         Log.d(TAG, "removeBackKeyListener");
 
-        mActivity.setWebViewOnKeyListener(null);
+        setWebViewOnKeyListener(null);
         CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult("");
         cbHybridPluginResult.setKeepCallback(false);
         cbHybridPluginResult.setStatus(CommonBasedConstants.HYBRID_ERROR_DELETE_CALLBACK);
 
         for (String callbackID : mCallbackList) {
-            mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+            sendAsyncResult(callbackID, cbHybridPluginResult);
         }
 
         mCallbackList.clear();
@@ -200,7 +220,7 @@ public class CBHybridBrowserPlugin extends CBHybridPlugin {
     public void showAlertDialog(final String title, final String content, final boolean isCancel, final int timeout, final String timeoutURL) {
         dismissAlertDialog();
 
-        if (!mActivity.isDestroyed()) {
+        if (!getActivity().isDestroyed()) {
             if (timeout > 0) {
                 mDialogTimer = new Timer();
                 mDialogTimer.schedule(new DialogTimerTask(timeoutURL), TimeUnit.SECONDS.toMillis(timeout));
@@ -219,7 +239,7 @@ public class CBHybridBrowserPlugin extends CBHybridPlugin {
      * 로딩바 닫기
      */
     private void dismissAlertDialog() {
-        if (!mActivity.isDestroyed()) {
+        if (!getActivity().isDestroyed()) {
             if (mAlertDialog.isShowing()) {
                 mAlertDialog.dismiss();
             }
@@ -246,8 +266,8 @@ public class CBHybridBrowserPlugin extends CBHybridPlugin {
         public void run() {
             dismissAlertDialog();
             if (mURL != null) {
-                if (!mActivity.isDestroyed()) {
-                    mActivity.loadUrl(mURL);
+                if (!getActivity().isDestroyed()) {
+                    loadUrl(mURL);
                 }
             }
         }

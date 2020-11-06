@@ -9,9 +9,14 @@ android {
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
+
+//        sourceSets {
+//            main {
+//                res.srcDirs = ['res']
+//                //assets.srcDirs = ['assets']
+//            }
+//        }
     }
 
     buildTypes {
@@ -20,25 +25,19 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
-    flavorDimensions "pkgInfo"
-    productFlavors {
-        tbed {
-            dimension "pkgInfo"
-        }
-        oper {
-            dimension "pkgInfo"
-        }
-    }
 }
 
 dependencies {
-    api project(path: ':lib_common_v3')
-    api project(path: ':lib_constants_v3')
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-
+    implementation project(path: ':lib_common_v3')
+    implementation project(path: ':lib_constants_v3')
+    implementation 'androidx.appcompat:appcompat:1.2.0'
 }
+
+task applyToDependecyLib(type: Copy) {
+    from('build/outputs/aar/')
+    into('../lib_common_hybrid_v3-release/')
+    include('lib_common_hybrid_v3-release.aar')
+}
+
+applyToDependecyLib.dependsOn(build)

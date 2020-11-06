@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import kr.go.mobile.agent.service.broker.Document;
 import kr.go.mobile.common.v3.CommonBasedAPI;
 import kr.go.mobile.common.v3.CommonBasedConstants;
-import kr.go.mobile.common.v3.broker.Request;
 import kr.go.mobile.common.v3.broker.Response;
 
 public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
@@ -43,19 +42,7 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
         return instance;
     }
 
-    private void initOption(String url, String fileName, String docExt, String createdDate) {
-        option = new DocConvertOption();
-        option.checkStatus = new AtomicBoolean(true);
-        option.docUrl = url;
-        option.docFileName = fileName;
-        option.docExt = docExt;
-        option.docCreatedDate = (createdDate == null ? "" : createdDate);
-        option.docHashCode = "";
-    }
 
-    private void clear() {
-        encodeDocCache.evictAll();
-    }
 
     public interface DocConvertListener {
         void updateConvertedStatus(ConvertStatus status);
@@ -75,15 +62,7 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
             return checkStatus.compareAndSet(true, false);
         }
 
-        String downloadConvertDoc(int page) throws JSONException {
-            return genRequestParams(page, false).toString();
-        }
-
-        String getConvertStatus() throws JSONException {
-            return genRequestParams(1, true).toString();
-        }
-
-        JSONObject genRequestParams(int page, boolean justConvertStatus) throws JSONException {
+        String downloadConvertedDoc(int page) throws JSONException {
             JSONObject jsonParams = new JSONObject();
             jsonParams.put("url", docUrl);
             jsonParams.put("fileName", docFileName);
@@ -94,10 +73,12 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
                 jsonParams.put("ext", docExt + "@" + docCreatedDate);
             }
             jsonParams.put("requesthashcode", docHashCode);
-//            if (justConvertStatus) {
-//                jsonParams.put("action", "empty"); // 변환 상태만 요청.
-//            }
-            return jsonParams;
+
+            return jsonParams.toString();
+        }
+
+        String getConvertStatus() throws JSONException {
+            return downloadConvertedDoc(1).toString();
         }
     }
 
@@ -125,10 +106,10 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
                     listener.updateConvertedStatus((ConvertStatus) msg.obj);
                     break;
                 case MANAGER_CONVERT_FAILED:
-                    listener.onFailed(msg.arg1, (String) msg.obj);
+                    listener.onFailed(msg.arg1, msg.obj == null ? "decode bytes is null." : (String) msg.obj);
                 default:
             }
-        };
+        }
     };
 
     DocConvertManager() {
@@ -156,6 +137,20 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
         };
     }
 
+    private void initOption(String url, String fileName, String docExt, String createdDate) {
+        option = new DocConvertOption();
+        option.checkStatus = new AtomicBoolean(true);
+        option.docUrl = url;
+        option.docFileName = fileName;
+        option.docExt = docExt;
+        option.docCreatedDate = (createdDate == null ? "" : createdDate);
+        option.docHashCode = "";
+    }
+
+    public void clear() {
+        encodeDocCache.evictAll();
+    }
+
     public void setConvertedListener(DocConvertListener docConvertListener) {
         this.listener = docConvertListener;
     }
@@ -163,16 +158,17 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
     private void requestConvertStatus() throws DocConvertException {
         Log.d(TAG, "request convert status");
         try {
-            Request request = Request.basic(CommonBasedConstants.BROKER_ACTION_CONVERT_STATUS_DOC, option.getConvertStatus());
-
-            CommonBasedAPI.enqueue(request, new Response.Listener() {
+            CommonBasedAPI.call(CommonBasedConstants.BROKER_ACTION_CONVERT_STATUS_DOC,
+                    option.getConvertStatus(),
+                    new Response.Listener() {
                 @Override
                 public void onSuccess(Response response) {
                     if (response.getErrorCode() == CommonBasedConstants.BROKER_ERROR_NONE) {
-                        if (response.resp instanceof Document) {
-                            ConvertStatus status = ConvertStatus.parse((Document) response.resp);
+                        try {
+                            Document doc = response.getResponse();
+                            ConvertStatus status = ConvertStatus.parse(doc);
                             updateDocStatus(status);
-                        } else {
+                        } catch (ClassCastException e) {
                             throw new RuntimeException("문서변환 중 전달받은 데이터가 문서 타입이 아닙니다.");
                         }
                     } else {
@@ -225,29 +221,28 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
             Log.d(TAG, "no docCache. request BrokerManager (page = " + page + ")");
 
             try {
-                Request request = Request.basic(CommonBasedConstants.BROKER_ACTION_LOAD_DOCUMENT, option.downloadConvertDoc(page));
-
-                CommonBasedAPI.enqueue(request, new Response.Listener() {
+                CommonBasedAPI.call(CommonBasedConstants.BROKER_ACTION_LOAD_DOCUMENT,
+                        option.downloadConvertedDoc(page),
+                        new Response.Listener() {
                     @Override
                     public void onSuccess(Response response) {
 
                         if (response.getErrorCode() == CommonBasedConstants.BROKER_ERROR_NONE) {
-                            if (response.resp instanceof Document) {
-                                byte[] byteImage = ((Document) response.resp).byteImage;
-                                DecodeDocTask task = DecodeDocTask.obtain(page, byteImage, DocConvertManager.this, handler);
+                            try {
+                                Document doc = response.getResponse();
+                                DecodeDocTask task = DecodeDocTask.obtain(page, doc.getResponseBytes(), DocConvertManager.this, handler);
                                 decodePoolExecutor.execute(task);
                                 synchronized (mLock) {
-                                    encodeDocCache.put(page, byteImage);
+                                    encodeDocCache.put(page, doc.getResponseBytes());
                                     if (option.needStatus()) {
                                         Log.d(TAG, "required StatusCheck");
-                                        ConvertStatus status = ConvertStatus.parse(((Document) response.resp));
+                                        ConvertStatus status = ConvertStatus.parse(doc);
                                         updateDocStatus(status);
                                     }
                                 }
-                            } else {
+                            } catch (ClassCastException e) {
                                 throw new RuntimeException("문서변환 중 전달받은 데이터가 문서 타입이 아닙니다.");
                             }
-
                         } else {
                             Log.e(TAG, "onSuccess : " + response.getErrorCode() + ",  " + response.getErrorMessage());
                             Message m = handler.obtainMessage(MANAGER_CONVERT_FAILED, response.getErrorCode(), 0, response.getErrorMessage());
@@ -285,8 +280,7 @@ public class DocConvertManager implements DecodeDocTask.ITrimCacheSizeAction {
         }
     }
 
-
-    public void failedRequest(DocConvertException e) {
+    protected void failedRequest(DocConvertException e) {
         listener.onFailed(CommonBasedConstants.CONVERT_DOC_ERROR_CAN_NOT_CONVERT, e.getMessage());
     }
 

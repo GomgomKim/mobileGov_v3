@@ -19,4 +19,8 @@ public interface ILocalMonitorService {
 
     void addPackage(Bundle info);
     void removePackage(String uid);
+
+    String getPackageName(int uid);
+
+    String getVersionCode(int uid);
 }

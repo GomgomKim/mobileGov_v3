@@ -191,38 +191,46 @@ class CBHybridWebView extends WebView {
             }
         });
 
-        this.getSettings().setJavaScriptEnabled(true);
-        this.getSettings().setDomStorageEnabled(true);
-        this.getSettings().setDatabaseEnabled(true);
-        this.getSettings().setAppCacheEnabled(true);
-        this.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-        this.getSettings().setAllowFileAccess(true);
-        this.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
-        this.getSettings().setGeolocationEnabled(true);
-        this.getSettings().setNeedInitialFocus(true);
+        this.setOnKeyListener(null);
         this.setHorizontalScrollBarEnabled(true);
         this.setVerticalScrollBarEnabled(false);
         this.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         this.setBackgroundColor(Color.BLACK);
 
-        //삼성 관련 특정 런처가 있으면 ZoomControl 설정 변경(태블릿 단말 관련 인듯)
+        // WebSetting
+        {
+            WebSettings settings = getSettings();
+            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+            settings.setJavaScriptEnabled(true);
+            settings.setJavaScriptCanOpenWindowsAutomatically(true);
+            settings.setDomStorageEnabled(true);
+            settings.setDatabaseEnabled(true);
+            settings.setAppCacheEnabled(true);
+            settings.setGeolocationEnabled(true);
+            settings.setAllowFileAccess(true);
+            settings.setNeedInitialFocus(true);
+        }
+
+
+
         try {
-            PackageInfo packageInfo = context.getPackageManager().getPackageInfo("com.sec.android.app.twlauncher", 0);
+            //삼성 관련 특정 런처가 있으면 ZoomControl 설정 변경(태블릿 단말 관련 인듯)
+            context.getPackageManager().getPackageInfo("com.sec.android.app.twlauncher", 0);
             this.getSettings().setBuiltInZoomControls(false);
         } catch (PackageManager.NameNotFoundException e) {
             this.getSettings().setBuiltInZoomControls(true);
         }
-
         this.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
     }
 
     @Override
     public void destroy() {
+        this.getSettings().setJavaScriptEnabled(false);
         this.clearAnimation();
         this.clearCache(true);
-        this.getSettings().setJavaScriptEnabled(false);
         this.setWebChromeClient(null);
         this.setWebViewClient(null);
+        this.setOnTouchListener(null);
         this.stopLoading();
         super.destroy();
     }

@@ -11,8 +11,6 @@ import kr.go.mobile.agent.service.broker.UserAuthentication;
 import kr.go.mobile.agent.service.session.ILocalSessionService;
 import kr.go.mobile.agent.service.session.SessionService;
 import kr.go.mobile.agent.service.session.UserSigned;
-import kr.go.mobile.agent.utils.Log;
-import kr.go.mobile.agent.utils.UserAuthenticationUtils;
 
 public class SessionManager {
 
@@ -34,16 +32,11 @@ public class SessionManager {
         return SessionManager.mInstance;
     }
 
-    static void destroy() {
-        SessionManager.mInstance = null;
-    }
-
     private ILocalSessionService session;
 
     public SessionManager(ILocalSessionService service) {
         this.session = service;
     }
-
 
     public void registerSigned(UserSigned signed) {
         session.registerSigned(signed);
@@ -86,8 +79,8 @@ public class SessionManager {
             throw new SessionException(SessionException.AUTH_NO_SESSION, "사용자 인증 정보가 존재하지 않습니다.");
         }
         try {
-            UserAuthenticationUtils.confirm(authentication);
-        } catch (UserAuthenticationUtils.InvalidatedAuthException e) {
+            session.confirm(authentication);
+        } catch (SessionService.InvalidatedAuthException e) {
             throw new SessionException(SessionException.AUTH_FAILED, "사용자 인증이 실패하였습니다. - "  +e.getMessage());
         }
         if (!Objects.equals(authentication.getUserDN(), getUserDN())) {
@@ -95,10 +88,10 @@ public class SessionManager {
         }
     }
 
+
     public void clear() {
         session.clear();
     }
-
 
     public static class SessionException extends Exception {
 

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="kr.go.mobile.iff.service" >
+    package="kr.go.mobile.iff.support.v2" >
     <!-- 보안 Agent 2.x 퍼미션 -->
     <permission
         android:name="kr.go.mobile.permission.ACCESS_SERVICE_BROKER"

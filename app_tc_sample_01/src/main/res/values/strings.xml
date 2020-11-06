@@ -1,0 +1,16 @@
+<resources>
+    <string name="company">모바일 전자정부 지원센터(내부)</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="api_user_info">SSO 인증 요청</string>
+    <string name="api_service_broker">기관 서버 데이터 요청</string>
+    <string name="api_service_broker_no_service_id">기관 서버 데이터 요청 (미등록 서비스ID)</string>
+    <string name="api_doc_viewer">문서뷰어</string>
+    <string name="api_doc_viewer_custom">커스텀 문서뷰어</string>
+    <string name="api_upload">파일 업로드</string>
+    <string name="title_activity_file_service">FileServiceActivity</string>
+    <string name="title_activity_custom_doc">CustomDocActivity</string>
+    <string name="api_in_upload">내부 파일 업로드</string>
+    <string name="api_data_upload">데이터 파일 업로드</string>
+    <string name="api_download">파일 다운로드</string>
+    <string name="api_restricted">제한적인 API 사용</string>
+</resources>

@@ -23,12 +23,12 @@ public class UserSigned {
     private String mUserDN;
     private String mSignedBase64;
     private String mUserID;
-    private String mOfficeCode;
     private String mOfficeName;
 
     public UserSigned(Context context, String solutionName) throws SolutionManager.ModuleNotFoundException {
         certificationLoginSolution = SolutionManager.initSolutionModule(context, solutionName);
         this.mAuthMaintainTime = context.getResources().getInteger(R.integer.SIGNED_SESSION_MAINTAIN_SEC) * 1000;
+        this.mAuthSuccessTime = 0;
     }
 
     public UserSigned(String dn, String signedBase64) {
@@ -49,7 +49,6 @@ public class UserSigned {
             }
         }
         this.mUserID = ui;
-        this.mOfficeCode = "0000000";
         this.mOfficeName = ou;
     }
 
@@ -60,11 +59,11 @@ public class UserSigned {
 
     public void validSession() throws ExpiredException {
         if (mAuthSuccessTime == 0) {
-            throw new ExpiredException("등록된 서명값이 없습니다.");
+            throw new ExpiredException("서명값 없음");
         } else if (mAuthMaintainTime > 0) {
             if ((System.currentTimeMillis() - mAuthSuccessTime) > mAuthMaintainTime) {
                 clear();
-                throw new ExpiredException("서명 유효 시간을 초과했습니다.");
+                throw new ExpiredException("서명 유효 시간 초과");
             } else {
                 Log.d(TAG, "유지시간: " + mAuthMaintainTime + " 경과시간: " + (System.currentTimeMillis() - mAuthSuccessTime));
             }
@@ -87,19 +86,14 @@ public class UserSigned {
         return mOfficeName;
     }
 
-    public String getOfficeCode() {
-        return mOfficeCode;
-    }
 
     public void setSigned(UserSigned signed) {
         if (signed.onlySigned()) {
             this.mSignedBase64 = signed.mSignedBase64;
             this.mAuthSuccessTime = signed.mAuthSuccessTime;
-            this.mOfficeCode = signed.mOfficeCode;
             this.mOfficeName = signed.mOfficeName;
             this.mUserDN = signed.mUserDN;
             this.mUserID = signed.mUserID;
-            Log.TC("사용자 서명 등록 성공");
             signed.clear();
         } else {
             throw new RuntimeException("UserSigned 타입이 서명 값만 존재해야 합니다.");
@@ -115,11 +109,10 @@ public class UserSigned {
     }
 
     public void clear() {
-        mAuthSuccessTime = 0L;
+        mAuthSuccessTime = 0;
         mUserDN = null;
         mSignedBase64 = null;
         mUserID = null;
-        mOfficeCode = null;
         mOfficeName = null;
     }
 

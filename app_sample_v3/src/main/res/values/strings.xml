@@ -5,7 +5,11 @@
     <string name="api_service_broker">서비스 브로커 API</string>
     <string name="api_doc_viewer">문서뷰어 API</string>
     <string name="api_doc_viewer_custom">커스텀 문서뷰어</string>
-    <string name="api_tss"> 음성인식</string>
+    <string name="api_upload">파일 업로드 API</string>
     <string name="title_activity_file_service">FileServiceActivity</string>
     <string name="title_activity_custom_doc">CustomDocActivity</string>
+    <string name="api_in_upload">내부 파일 업로드</string>
+    <string name="api_data_upload">데이터 파일 업로드</string>
+    <string name="api_download">다운로드 API</string>
+    <string name="api_restricted">제한적인 API 사용</string>
 </resources>

@@ -9,7 +9,9 @@ import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
 
-public class UserActivityPlugin extends MDHPlugin {
+import kr.go.mobile.mobp.mff.lib.plugins.NewMDHPlugin;
+
+public class UserActivityPlugin extends NewMDHPlugin {
 
 	public UserActivityPlugin() {
 		

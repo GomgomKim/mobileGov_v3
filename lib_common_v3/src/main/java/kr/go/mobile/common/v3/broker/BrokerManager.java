@@ -8,7 +8,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -30,15 +29,14 @@ import kr.go.mobile.common.v3.CBApplication;
 
 public class BrokerManager {
 
-
     private static BrokerManager instance;
 
     private static final int MESSAGE_OK = Integer.MAX_VALUE;
     private static final int MESSAGE_ERROR = Integer.MIN_VALUE;
 
-    public static void bindService(Context context, ServiceConnection agentServiceConnection) {
+    public static void bindService(Context context, String launcherName, ServiceConnection agentServiceConnection) {
         Intent i = new Intent("kr.go.mobile.action.BROKER_SERVICE");
-        i.setPackage(context.getString(R.string.iff_launcher_pkg));
+        i.setPackage(launcherName);
         context.bindService(i, agentServiceConnection, Context.BIND_AUTO_CREATE
                 | Context.BIND_ADJUST_WITH_ACTIVITY | Context.BIND_ABOVE_CLIENT | Context.BIND_DEBUG_UNBIND
                 | Context.BIND_IMPORTANT | Context.BIND_WAIVE_PRIORITY /*| Context.BIND_EXTERNAL_SERVICE*/);
@@ -82,7 +80,6 @@ public class BrokerManager {
         getInstance().execute(caller);
     }
 
-    @Deprecated
     static Response submit(Caller caller) throws ExecutionException, InterruptedException {
         caller.service = getInstance().service;
         Future<Response> future = getInstance().requestPoolExecutor.submit((Callable<Response>) caller);
@@ -117,12 +114,12 @@ public class BrokerManager {
         @Override
         public void handleMessage(@NonNull Message msg) {
             // MainThread (UI 처리 가능)
-            Response.Listener listener;
-            if (listenerMap.containsKey(msg.arg1)) {
-                listener = listenerMap.get(msg.arg1);
+            Response.Listener listener = listenerMap.get(msg.arg1);
+            if (listener != null) {
+                Log.TC("공통기반 서비스 리스너: 응답데이터 전달");
                 switch (msg.what) {
                     case MESSAGE_OK:
-                        BrokerResponse<?> brokerResp = (BrokerResponse) msg.obj;
+                        BrokerResponse<?> brokerResp = (BrokerResponse<?>) msg.obj;
                         listener.onSuccess(Response.convert(brokerResp));
                         break;
                     case MESSAGE_ERROR:
@@ -130,7 +127,7 @@ public class BrokerManager {
                         listener.onFailure(msg.arg2, (String) msg.obj, null);
                         break;
                 }
-                return;
+                listenerMap.remove(msg.arg1);
             }
             super.handleMessage(msg);
         }
@@ -139,7 +136,6 @@ public class BrokerManager {
     private BrokerManager(IBrokerService service) {
         this.service = service;
         this.requestPoolExecutor = new ThreadPoolExecutor(sizeCoreThread, sizeTotalThread, keepAliveTime, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(capacityQueue)) {
-
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);

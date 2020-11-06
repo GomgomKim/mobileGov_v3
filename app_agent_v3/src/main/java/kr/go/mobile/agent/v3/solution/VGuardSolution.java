@@ -55,6 +55,7 @@ public class VGuardSolution extends Solution<Void, ThreatDetection.STATUS> imple
         Log.w(TAG, "V-Guard 연결 실패");
         mVGRemote.closeUnRegisterReceiver();
         isBound.getAndSet(false);
+        throw new RuntimeException("악성탐지 솔루션 연동이 끊어졌습니다.");
     }
 
     @Override

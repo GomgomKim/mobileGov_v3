@@ -30,23 +30,15 @@ public class MonitorManager {
                         Context.BIND_IMPORTANT);
     }
 
-    // 공통기반 라이브러리 2.x.x 를 사용하는 행정앱이 완전히 종료될 때 이벤트 발생.
-    @Deprecated
-    public static void removeMonitorPackage(Context ctx, String requestId) {
-        Intent intent = new Intent(ctx, MonitorService.class);
-        intent.setAction(MonitorService.MONITOR_REMOVE_ADMIN_PACKAGE);
-        intent.putExtra("req_id", requestId);
-        ctx.startService(intent);
-    }
-
     private ILocalMonitorService SERVICE;
+    @Deprecated
     private Bundle runningTarget;
 
     MonitorManager(IBinder binder) {
         this.SERVICE = (ILocalMonitorService) binder;
     }
 
-    public void setAnotherConfirm(Bundle extra) {
+    public void execute(Bundle extra) {
         String another = extra.getString("extra_token", null);
         SERVICE.executeSolution(another);
 
@@ -97,7 +89,7 @@ public class MonitorManager {
     public String getErrorMessage(int type) {
         return SERVICE.getErrorMessage(type);
     }
-
+    @Deprecated
     public Bundle getRunningPackageInfo() {
         return runningTarget;
     }
@@ -108,5 +100,13 @@ public class MonitorManager {
 
     private void reset() {
         SERVICE.reset();
+    }
+
+    public String getPackageName(int uid) {
+        return SERVICE.getPackageName(uid);
+    }
+
+    public String getVersionCode(int uid) {
+        return SERVICE.getVersionCode(uid);
     }
 }

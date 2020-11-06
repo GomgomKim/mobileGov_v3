@@ -2,8 +2,6 @@ package kr.go.mobile.agent.service.broker;
 
 import android.os.Parcel;
 
-import org.json.JSONObject;
-
 import java.util.Objects;
 
 public class Document extends MethodResponse {
@@ -17,7 +15,10 @@ public class Document extends MethodResponse {
     public String contentType;
     public String contentLength;
     public String contentDisposition;
-    public byte[] byteImage;
+
+    public Document(String id, String result, String code, String msg) {
+        super(id, result, code, msg);
+    }
 
     public Document() {
         super();
@@ -35,9 +36,8 @@ public class Document extends MethodResponse {
         contentType = in.readString();
         contentLength = in.readString();
         contentDisposition = in.readString();
-        byteImage = new byte[in.readInt()];
-        in.readByteArray(byteImage);
     }
+
 
     @Override
     public boolean relayServerOK() {
@@ -57,8 +57,8 @@ public class Document extends MethodResponse {
         dest.writeString(contentType);
         dest.writeString(contentLength);
         dest.writeString(contentDisposition);
-        dest.writeInt(byteImage.length);
-        dest.writeByteArray(byteImage);
+//        dest.writeInt(byteImage.length);
+//        dest.writeByteArray(byteImage);
     }
 
     @Override

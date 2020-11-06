@@ -8,28 +8,16 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 29
+        buildConfigField "String", "devLauncherPkg", "\"kr.go.mobile.testbed.iff\""
+        buildConfigField "String", "devMSMUrl", "\"https://msmsub.mobile.go.kr/eversafe\""
+        buildConfigField "String", "launcherPkg", "\"kr.go.mobile.mobp.iff\""
+        buildConfigField "String", "msmUrl", "\"https://msmmain.mobile.go.kr/eversafe\""
+        resValue "string", "common_based_version", "3.0.0"
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-
-    flavorDimensions "pkgInfo"
-    productFlavors {
-        tbed {
-            dimension "pkgInfo"
-            resValue "string", "iff_launcher_pkg", "kr.go.mobile.testbed.iff"
-            resValue "string", "iff_msm_url", "https://msmsub.mobile.go.kr/eversafe"
-            resValue "string", "common_based_version", "3.0.0"
-        }
-        oper {
-            dimension "pkgInfo"
-            resValue "string", "iff_launcher_pkg", "kr.go.mobile.mobp.iff"
-            resValue "string", "iff_msm_url", "https://msmmain.mobile.go.kr/eversafe"
-            resValue "string", "common_based_version", "3.0.0"
         }
     }
 }
@@ -37,9 +25,16 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(path: ':iff_msm_library-0.10.7')
-    implementation project(path: ':lib_constants_v3')
-    compileOnly 'com.github.chrisbanes:PhotoView:2.1.4'
-    compileOnly 'androidx.appcompat:appcompat:1.2.0'
-    compileOnly 'androidx.constraintlayout:constraintlayout:2.0.2'
-
+    implementation 'com.github.chrisbanes:PhotoView:2.1.4'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
 }
+
+task applyToDependecyLib(type: Copy) {
+    from('build/outputs/aar/')
+    into('../lib_common_v3-release/')
+    include('lib_common_v3-release.aar')
+}
+
+// exportJar 실행시 deleteObjectJar 가 실행되도록 설정
+applyToDependecyLib.dependsOn(build)

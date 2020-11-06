@@ -1,10 +1,10 @@
 package kr.go.mobile.common.v3.hybrid;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
-import android.webkit.WebView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -12,12 +12,8 @@ import androidx.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-import kr.go.mobile.common.v3.hybrid.plugin.CBHybridBrokerPlugin;
-import kr.go.mobile.common.v3.hybrid.plugin.CBHybridBrowserPlugin;
-import kr.go.mobile.common.v3.hybrid.plugin.CBHybridLocationPlugin;
 import kr.go.mobile.common.v3.hybrid.plugin.CBHybridPlugin;
 import kr.go.mobile.common.v3.hybrid.plugin.CBHybridPluginResult;
-import kr.go.mobile.common.v3.hybrid.plugin.CBHybridTelephonyPlugin;
 
 
 /**
@@ -27,39 +23,57 @@ import kr.go.mobile.common.v3.hybrid.plugin.CBHybridTelephonyPlugin;
  */
 
 public class CBHybridActivity extends Activity {
-    private static final String TAG = CBHybridActivity.class.getSimpleName();
-    private WebView mWebView;
-    private CBHybridPluginManager mPluginManager;
+    private CBHybridWebView cbWebView;
+    private CBHybridAgent cbHybridAgent;
     private Map<Integer, IRequestPermissionListener> mReqListenerMap;
-
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        //PluginManager 초기화
-        mPluginManager = new CBHybridPluginManager(this);
-
-        //WebView 초기화
-        mWebView = new CBHybridWebView(this);
-        mWebView.addJavascriptInterface(mPluginManager, CBHybridPluginManager.class.getSimpleName());
-        mWebView.setOnKeyListener(null);
-
-        //Listener MAp 초기화
-        mReqListenerMap = new HashMap<Integer, IRequestPermissionListener>();
-
-        setContentView(mWebView);
-
-        addPlugin("Browser", CBHybridBrowserPlugin.class);
-        addPlugin("Location", CBHybridLocationPlugin.class);
-        addPlugin("Telephony", CBHybridTelephonyPlugin.class);
-        addPlugin("Broker", CBHybridBrokerPlugin.class);
-    }
 
     /**
      * 퍼미션 허용 여부 확인용 Listener
      */
     public interface IRequestPermissionListener {
-        void onResult(int reqCode, boolean result);
+        void onResult(int requestCode, boolean isGranted);
+    }
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        //WebView 초기화
+        cbWebView = new CBHybridWebView(this);
+        cbWebView.setOnKeyListener(null);
+
+        cbHybridAgent = new CBHybridAgent(this, cbWebView);
+        cbHybridAgent.init();
+
+        //Listener MAP 초기화
+        mReqListenerMap = new HashMap<>();
+
+        setContentView(cbWebView);
+    }
+
+    @Override
+    protected void onPause() {
+        cbHybridAgent.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        cbHybridAgent.onResume();
+        super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        mReqListenerMap.clear();
+        mReqListenerMap = null;
+
+        cbHybridAgent.onDestroy();
+        cbHybridAgent = null;
+
+        cbWebView.destroy();
+        cbWebView = null;
+        super.onDestroy();
     }
 
     /**
@@ -72,14 +86,14 @@ public class CBHybridActivity extends Activity {
         mReqListenerMap.put(reqCode, listener);
     }
 
-
     /**
      * 플러그인 등록
      *
+     * @param pluginName 플러그인 이름
      * @param cls 플러그인 클래스 객체
      */
     public void addPlugin(String pluginName, Class<? extends CBHybridPlugin> cls) {
-        mPluginManager.addPlugin(pluginName, cls);
+        cbHybridAgent.addPlugin(pluginName, cls);
     }
 
 
@@ -89,14 +103,13 @@ public class CBHybridActivity extends Activity {
      * @param url 로드할 페이지 URL or Javascript
      */
     public void loadUrl(final String url) {
-        mWebView.post(new Runnable() {
+        cbWebView.post(new Runnable() {
             @Override
             public void run() {
-                mWebView.loadUrl(url);
+                cbWebView.loadUrl(url);
             }
         });
     }
-
 
     /**
      * Back키 누를 때 처리
@@ -105,8 +118,8 @@ public class CBHybridActivity extends Activity {
      */
     @Override
     public void onBackPressed() {
-        if (mWebView.canGoBack()) {
-            mWebView.goBack();
+        if (cbWebView.canGoBack()) {
+            cbWebView.goBack();
         } else {
             super.onBackPressed();
         }
@@ -119,9 +132,8 @@ public class CBHybridActivity extends Activity {
      * @param result     리턴 결과
      */
     public void sendAsyncResult(String callbackID, CBHybridPluginResult result) {
-        mPluginManager.sendCallback(callbackID, result);
+        cbHybridAgent.sendCallback(callbackID, result);
     }
-
 
     /**
      * Back 이벤트 처리 관련 WebView에 리스너 등록
@@ -129,9 +141,25 @@ public class CBHybridActivity extends Activity {
      * @param listener KeyListener
      */
     public void setWebViewOnKeyListener(View.OnKeyListener listener) {
-        mWebView.setOnKeyListener(listener);
+        cbWebView.setOnKeyListener(listener);
     }
 
+    @Override
+    public void startActivityForResult(Intent intent, int requestCode) {
+        super.startActivityForResult(intent, requestCode);
+    }
+
+    public void startActivityForResult(CBHybridPlugin plugin, Intent intent, int requestCode) {
+        // TODO 호출한 플러그인 기록.
+        super.startActivityForResult(intent, requestCode);
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        // TODO 호출한 플러그 인으로 리턴
+        super.onActivityResult(requestCode, resultCode, intent);
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -148,17 +176,6 @@ public class CBHybridActivity extends Activity {
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        CBHybridPlugin cbHybridPlugin = mPluginManager.getPlugin(CBHybridBrowserPlugin.class.getSimpleName());
-        if (cbHybridPlugin != null) {
-            ((CBHybridBrowserPlugin) cbHybridPlugin).stopLoadingBar();
-        }
-        mWebView.destroy();
-        mPluginManager = null;
-        mWebView = null;
-        super.onDestroy();
-    }
 
 
 }

@@ -49,34 +49,14 @@ public class CBApplication extends Application {
     private final String PREFIX_LOGFILE = "-crash-log-%s.log";
     private final DateFormat SUFFIX_LOGFILE = new SimpleDateFormat("yyMMddHHmmss", Locale.KOREAN);
 
-    // 에이전트의 서비스와 통신하기 위한 메신져
-    private Messenger agentCMDHandler = new Messenger(new Handler(Looper.getMainLooper()) {
-        // 보안에이전트의 모니터링 서비스로부터 명령(Command)를 수신하여 처리하기 위한 핸들러
-        @Override
-        public void handleMessage(Message message) {
-            switch (message.what) {
-                case CommonBasedConstants.CMD_FORCE_KILL_POLICY_VIOLATION: {
-                    int codeCause = message.arg1;
-                    Log.e(TAG, String.format("정책 위반으로 앱을 종료합니다. (사유 : %s)", codeCause));
-                    finishThisPackage("보안 에이전트에 의한 강제 종료", String.valueOf(codeCause));
-                    break;
-                }
-                case CommonBasedConstants.CMD_FORCE_KILL_DISABLED_SECURE_NETWORK: {
-                    Log.e(TAG, "보안 네트워크 비활성화로 앱을 종료합니다.");
-                    finishThisPackage("보안 에이전트에 의한 강제 종료", "보안 네트워크 비활성화로 앱을 종료합니다.");
-                    break;
-                }
-            }
-            super.handleMessage(message);
-        }
-    });
-
-    final ServiceConnection agentServiceConnection = new ServiceConnection() {
+    private final ServiceConnection agentServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
                 if (Objects.equals(service.getInterfaceDescriptor(), IBrokerService.class.getCanonicalName())) {
+                    Utils.TC("브로커 서비스 바인딩 : 성공");
                     brokerManager = BrokerManager.create(service);
+                    Utils.TC("브로커 서비스 : 등록");
                 } else  if (Objects.equals(service.getInterfaceDescriptor(), "android.os.IMessenger")) {
                     // 행정앱 --> 보안 Agent 로 Event 를 보내기 위함.
                     monitorManager = MonitorManager.create(service, Process.myUid(), agentCMDHandler);
@@ -103,6 +83,32 @@ public class CBApplication extends Application {
         }
     };
 
+    // 에이전트의 서비스와 통신하기 위한 메신져
+    private Messenger agentCMDHandler = new Messenger(new Handler(Looper.getMainLooper()) {
+        // 보안에이전트의 모니터링 서비스로부터 명령(Command)를 수신하여 처리하기 위한 핸들러
+        @Override
+        public void handleMessage(Message message) {
+            switch (message.what) {
+
+                case CommonBasedConstants.CMD_FORCE_KILL_POLICY_VIOLATION: {
+                    int codeCause = message.arg1;
+                    Log.e(TAG, String.format("정책 위반으로 앱을 종료합니다. (사유 : %s)", codeCause));
+                    finishThisPackage("보안 에이전트에 의한 강제 종료", String.valueOf(codeCause));
+                    break;
+                }
+                case CommonBasedConstants.CMD_FORCE_KILL_DISABLED_SECURE_NETWORK: {
+                    Log.e(TAG, "보안 네트워크 비활성화로 앱을 종료합니다.");
+                    finishThisPackage("보안 에이전트에 의한 강제 종료", "보안 네트워크 비활성화로 앱을 종료합니다.");
+                    break;
+                }
+                default:
+                    return;
+            }
+            Utils.TC("공통기반 서비스: 행정앱 제어");
+            super.handleMessage(message);
+        }
+    });
+
     private BrokerManager brokerManager;
     private MonitorManager monitorManager;
     private Activity foregroundActivity;
@@ -113,7 +119,7 @@ public class CBApplication extends Application {
         super.onCreate();
 
         // 보안 에이전트 설치 및 권한 부여 확인
-        boolean installedLauncher = PackageUtils.isInstalledPackage(this, getString(R.string.iff_launcher_pkg));
+        boolean installedLauncher = PackageUtils.isInstalledPackage(this, Utils.getLauncherName(this));
         boolean grantedPermission = (checkCallingOrSelfPermission("kr.go.mobile.permission.ACCESS_RELAY_SERVICE") == PackageManager.PERMISSION_GRANTED);
         String commonApiVersion = getString(R.string.common_based_version);
         final String regex = PREFIX_LOGFILE.replace("%s", "(\\d){12}");
@@ -131,7 +137,13 @@ public class CBApplication extends Application {
         Log.i(TAG, String.format(" - 보안 에이전트 : %s", (installedLauncher ? "설치" : "미설치")));
         Log.i(TAG, String.format(" - 서비스 권한 부여 : %s",  (grantedPermission ? "획득" : "미획득")));
         Log.i(TAG, String.format(" - 비정상 종료 횟수 : %d", countStackTrace));
-        CommonBasedAPI.initialize(this, getPackageName(), commonApiVersion, installedLauncher, grantedPermission, countStackTrace);
+
+        new CommonBasedAPI.Initializer(this)
+                .setCommonBasedApiVersion(commonApiVersion)
+                .setInstalledLauncher(installedLauncher)
+                .setGrantedPermission(grantedPermission)
+                .setCountStackTrace(countStackTrace)
+                .init();
 
         // MSN 모듈 초기화
         Log.d(TAG, "보안 모듈 초기화");
@@ -154,7 +166,7 @@ public class CBApplication extends Application {
             @Override
             public void onActivityResumed(@NonNull Activity activity) {
                 sendEventMonitor(CommonBasedConstants.EVENT_ACTIVITY_RESUMED, activity);
-                addActivity(activity);
+
             }
 
             @Override
@@ -175,7 +187,7 @@ public class CBApplication extends Application {
             @Override
             public void onActivityDestroyed(@NonNull Activity activity) {
                 sendEventMonitor(CommonBasedConstants.EVENT_ACTIVITY_DESTROYED, activity);
-                removeActivity(activity);
+
             }
         });
 
@@ -198,7 +210,6 @@ public class CBApplication extends Application {
     private void addActivity(Activity activity) {
         foregroundActivity = activity;
         resumeActivity.add(activity);
-        Log.d("@@@", "--- add Activity : " + activity.getClass().getSimpleName());
     }
 
     private void removeActivity(Activity activity) {
@@ -206,7 +217,6 @@ public class CBApplication extends Application {
             foregroundActivity = null;
         }
         resumeActivity.remove(activity);
-        Log.d("@@@", "--- remove Activity : " + activity.getClass().getSimpleName());
     }
 
     private void startCrashMonitor() {
@@ -231,6 +241,7 @@ public class CBApplication extends Application {
             writeCrashLog(e);
             cause = e.getMessage();
         } finally {
+            Utils.TC("공통기반 서비스: 비정상종료 모니터링");
             if (cause != null) {
                 Log.d(CRASH_TAG, String.format("앱 종료 이벤트를 보안 에이전트로 전송합니다. (cause = %s)", cause));
 //                try {
@@ -301,18 +312,12 @@ public class CBApplication extends Application {
     }
 
     protected BrokerManager getBroker() {
-        return getBroker(true);
-    }
-
-    protected BrokerManager getBroker(boolean checkedNull) {
         if (this.brokerManager == null) {
-            if (checkedNull)
-                throw new IllegalStateException("브로커 매니저가 존재하지 않습니다.");
             return null;
         } else if (this.brokerManager.isAlive()) {
             return this.brokerManager;
         } else {
-            BrokerManager.bindService(this, agentServiceConnection);
+            BrokerManager.bindService(this, Utils.getLauncherName(this), agentServiceConnection);
             return null;
         }
     }
@@ -330,13 +335,13 @@ public class CBApplication extends Application {
 //                | Context.BIND_NOT_PERCEPTIBLE // 시스템에서 일시적으로 메모리에서 정리
 //                | Context.BIND_WAIVE_PRIORITY; // 메모리 관리 우선 순위에 영향을 미치지 않음.
         if (brokerManager == null) {
-            BrokerManager.bindService(this, agentServiceConnection);
+            BrokerManager.bindService(this, Utils.getLauncherName(this), agentServiceConnection);
         }
     }
 
     void bindMonitorService() {
         if (monitorManager == null)
-            MonitorManager.bindService(this, agentServiceConnection);
+            MonitorManager.bindService(this, Utils.getLauncherName(this), agentServiceConnection);
     }
 
     private void finishThisPackage(String title, String message) {
@@ -344,14 +349,15 @@ public class CBApplication extends Application {
     }
 
     void finishThisPackage(final Activity foregroundActivity, String title, String message) {
-        if (foregroundActivity != null) {
+        if (foregroundActivity != null && !foregroundActivity.isDestroyed()) {
+            Utils.TC("공통기반 서비스: 종료 다이얼로그 생성");
             AlertDialog.Builder builder = new AlertDialog.Builder(foregroundActivity);
             builder.setTitle(title);
             builder.setMessage(message);
             builder.setCancelable(false);
             builder.setNeutralButton(foregroundActivity.getString(R.string.iff_button_close), new DialogInterface.OnClickListener() {
                 @Override
-                public void onClick(DialogInterface dialog, final int which) {
+                public void onClick(final DialogInterface dialog, final int which) {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -362,6 +368,8 @@ public class CBApplication extends Application {
                             do {
                                 // 모든 Activity 가 종료될때 까지 대기
                             } while (resumeActivity.size() != 0);
+                            dialog.dismiss();
+                            foregroundActivity.finish();
                             System.exit(0);
                         }
                     }).start();
@@ -380,7 +388,31 @@ public class CBApplication extends Application {
     }
 
     private void sendEventMonitor(int event, Activity activity) {
+        String e;
+        switch (event) {
+            case CommonBasedConstants.EVENT_ACTIVITY_STOPPED:
+                e = "STOP";
+                break;
+            case CommonBasedConstants.EVENT_ACTIVITY_PAUSED:
+                e = "PAUSED";
+                break;
+            case CommonBasedConstants.EVENT_ACTIVITY_RESUMED:
+                addActivity(activity);
+                e = "RESUMED";
+                break;
+            case CommonBasedConstants.EVENT_ACTIVITY_STARTED:
+                e = "STARTED";
+                break;
+            case CommonBasedConstants.EVENT_ACTIVITY_DESTROYED:
+                // 초기화 요청한 activity 가 destroy 되는거면 초기화 요청 결과를 받은 후.
+                e = "DESTROYED";
+                removeActivity(activity);
+                break;
+            default:
+                e = "N/A";
+        }
         String activityName = activity.getClass().getCanonicalName();
+        Log.d("@@@", "------- " + e + " ---  Activity : " + activityName);
         // TODO
 //        try {
 //            Log.d(TAG, "");

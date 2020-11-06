@@ -7,11 +7,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
-
     <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"
         tools:ignore="ProtectedPermissions" />
-
-
 
     <!-- 보안 Agent 3.x 퍼미션 -->
     <permission
@@ -22,9 +19,9 @@
 
     <application
         android:name="kr.go.mobile.agent.app.SAGTApplication"
-        android:allowBackup="false"
         android:icon="@drawable/icon_launcher_internal"
         android:label="@string/app_name"
+        android:allowBackup="false"
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -33,7 +30,7 @@
         tools:targetApi="q"
         tools:replace="android:icon,android:allowBackup">
         <activity
-            android:name="kr.go.mobile.agent.v3.CommonBaseInitActivity"
+            android:name="kr.go.mobile.agent.v3.CommonBasedInitActivity"
             android:label=""
             android:clearTaskOnLaunch="true"
             android:configChanges="orientation|keyboardHidden|locale"

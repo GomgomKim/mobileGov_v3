@@ -4,12 +4,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".NativeActivity">
+    tools:context=".nativz.NativeActivity">
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:id="@+id/linearLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:isScrollContainer="true"
+        android:orientation="vertical"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <TextView
             android:id="@+id/txtUesrInfo"
@@ -63,15 +67,44 @@
             android:layout_height="70dp"
             android:onClick="onClickDocViewerCustom"
             android:text="@string/api_doc_viewer_custom"
-            tools:text="@string/api_doc_viewer_custom"/>
+            tools:text="@string/api_doc_viewer_custom" />
+
+        <Button
+            android:id="@+id/button11"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:onClick="onClickRestricted"
+            android:text="@string/api_restricted"
+            tools:text="@string/api_restricted" />
 
         <Button
             android:id="@+id/button5"
             android:layout_width="match_parent"
             android:layout_height="70dp"
-            android:onClick="onClickTSS"
-            android:text="@string/api_tss"
-            tools:text="@string/api_tss" />
+            android:onClick="onClickUpload"
+            android:text="@string/api_upload"
+            tools:text="@string/api_upload" />
+
+        <ListView
+            android:id="@+id/listFileUpload"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/button10"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:onClick="onClickDownload"
+            android:text="@string/api_download"
+            tools:text="@string/api_download" />
+
+        <ListView
+            android:id="@+id/listFileDownload"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="visible" />
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

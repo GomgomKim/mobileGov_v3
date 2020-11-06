@@ -1,10 +1,10 @@
 <resources>
-    <string name="iff_not_installed_required_package">필수앱이 설치되어 있지 않습니다.</string>
+    <string name="iff_not_installed_required_package">필수앱이 미설치</string>
     <string name="iff_guide_not_installed_and_required_agent">보안 Agent 설치 후 다시 실행하시기 바랍니다.</string>
     <string name="iff_button_close">닫기</string>
-    <string name="iff_denied_permission">보안 Agent 사용 권한이 없습니다.</string>
-    <string name="iff_guide_this_app_reinstall">해당 앱을 재설치한 후 재실행해주시기 바랍니다. 재설치 후에도 실행되지 않을 경우 지원센터에 문의바랍니다.</string>
-    <string name="iff_not_ready_service">공통기반 서비스가 연결되지 않습니다.</string>
+    <string name="iff_denied_permission">보안 서비스 사용 권한 거부</string>
+    <string name="iff_not_ready_service">보안 서비스 연결 실패</string>
+    <string name="iff_guide_this_app_reinstall">해당 앱을 삭제 후 설치하시기 바랍니다. 재설치 후에도 실행되지 않을 경우 지원센터에 문의바랍니다.</string>
     <string name="iff_guide_this_app_restart">해당 앱을 재실행해주시기 바랍니다. 이후 실행되지 않을 경우 지원센터에 문의바랍니다.</string>
     <string name="iff_guide_check_network">단말 네트워크 상태를 확인 후 앱을 재실행해주시기 바랍니다. 이후 실행되지 않을 경우 지원센터에 문의바랍니다.</string>
     <string name="iff_disconnection_agent">보안 Agent 서비스 연결 에러</string>
@@ -24,6 +24,7 @@
     <string name="cb_dv_toast_msg_first">첫번째 페이지입니다.</string>
     <string name="cb_dv_toast_msg_last">마지막 페이지 입니다.</string>
     <string name="cb_dv_toast_msg_wait_retry">페이지 로딩중입니다.</string>
+    <string name="iff_failed_secure_service"><![CDATA[보안 서비스 연결을 할 수 없습니다. [설정] -> [애플리케이션] 에서 행정앱 및 보안 Agent 를 종료 후 다시 실행해 주시기 바랍니다.]]></string>
 
 
 </resources>

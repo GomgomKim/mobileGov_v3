@@ -10,6 +10,7 @@ public class CommonBasedConstants {
     public static final String BROKER_ACTION_LOAD_DOCUMENT = "document_load";
     public static final String BROKER_ACTION_CONVERT_STATUS_DOC = "convert_doc_status";
     public static final String BROKER_ACTION_FILE_UPLOAD = "upload";
+    public static final String BROKER_ACTION_FILE_DOWNLOAD = "download";
 
     // EVENT : 행정앱에서 보안에이전트로 보내는 이벤트
     public static final int EVENT_COMMAND_HANDLER_UNREGISTERED = 0;
@@ -31,11 +32,16 @@ public class CommonBasedConstants {
     // 사용자 취소
     public static final int RESULT_USER_CANCELED = Activity.RESULT_CANCELED;
     // 공통기반 라이브러리에서 사용되는 실패 값 /////////////////////////
+    // 보안 에이전트 미설치
     public static final int RESULT_COMMON_NOT_INSTALLED_AGENT = 20;
+    // 보안 에이전트 권한 거부
     public static final int RESULT_COMMON_DENIED_AGENT_PERMISSION = 21;
+    // 무결성 검증 확인 실패
     public static final int RESULT_COMMON_NOT_READY_INTEGRITY_APP = 22;
     public static final int RESULT_COMMON_INTEGRITY_APP_TIMEOUT = 23;
     public static final int RESULT_COMMON_INTEGRITY_APP_INVALID_URL = 24;
+    // 보안 에이전트 서비스 연결 실패
+    public static final int RESULT_COMMON_BIND_FAILED_SECURE_SERVICE = 25;
     /////////////////////////////////////////////////////////////////
 
     /**
@@ -63,13 +69,13 @@ public class CommonBasedConstants {
      */
     public static final int RESULT_AGENT_INSTALL_REQUIRED_PACKAGE = 49004;
     /**
-     * 공통기반 보안 솔루션 연계 실패
-     */
-    public static final int RESULT_AGENT_SOLUTION_ERROR = 49005;
-    /**
      * 인증 실패
      */
     public static final int RESULT_AGENT_FAILURE_USER_AUTHENTICATION = 49005;
+    /**
+     * 공통기반 보안 솔루션 연계 실패
+     */
+    public static final int RESULT_AGENT_SOLUTION_ERROR = 49009;
 
     /**
      * 사용자 ID (예. 000홍길동000)
@@ -88,11 +94,6 @@ public class CommonBasedConstants {
     Broker 및 Relay에서 사용하는 오류 코드 정리
     Tom 200922
      */
-
-    /**
-     * 보안 네트워크 미연결 상태
-     */
-    public static final int BROKER_ERROR_SECURE_NETWORK_DISCONNECTION = 1004;
     /**
      * 브로커 서비스 처리  - 정상
      */
@@ -100,25 +101,20 @@ public class CommonBasedConstants {
     /**
      * 브로커 서비스 데이터 처리 에러
      */
-    public static final int BROKER_ERROR_PROC_DATA = 1001;
+    public static final int BROKER_ERROR_INVALID_RESPONSE = 1001;
     /**
      * 브로커 서비스 행정 서버 에러
      * HTTP 응답 에러
      */
-    public static final int BROKER_ERROR_HTTP_RESPONSE = 1002;
-    /**
-     * 브로커 서비스 공통기반 시스템 에러
-     * result 값이 1로 오지 않을 경우
-     */
-    public static final int BROKER_ERROR_RESP_COMMON_DATA  = 1003;
+    public static final int BROKER_ERROR_SERVICE_SERVER = 1002;
     /**
      * Request 형식 에러
      */
-    public static final int BROKER_ERROR_REQUEST_FORM  = 1004;
+    public static final int BROKER_ERROR_FAILED_REQUEST = 1004;
     /**
      * 중계 서버에서 처리 중 에러가 발생
      */
-    public static final int BROKER_ERROR_RELAY_SERVER = 1005;
+    public static final int BROKER_ERROR_RELAY_SYSTEM = 1005;
 
 
     public static final int HYBRID_ERROR_NONE = 9000;

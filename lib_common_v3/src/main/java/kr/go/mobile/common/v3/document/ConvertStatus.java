@@ -26,7 +26,7 @@ public class ConvertStatus {
         return convertedPage;
     }
 
-    public String getConvertDocHash() {
+    protected String getConvertDocHash() {
         return hash;
     }
 }

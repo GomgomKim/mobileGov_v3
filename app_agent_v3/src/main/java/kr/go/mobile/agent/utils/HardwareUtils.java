@@ -45,9 +45,8 @@ public class HardwareUtils {
 
         if(Objects.equals(ctx.getPackageName(), "kr.go.mobile.testbed.iff")) {
             if (phoneNum == null) {
-                phoneNum = "01012345698";
+                phoneNum = "dummy-01012345698";
             }
-            ///////////////////////////////////////
         }
 
         if (phoneNum.startsWith("+82"))

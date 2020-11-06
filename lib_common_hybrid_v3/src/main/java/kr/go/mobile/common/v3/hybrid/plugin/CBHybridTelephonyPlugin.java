@@ -49,32 +49,51 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
 
     private boolean isWaitReqPerCallPhone = true;
     private boolean isWaitReqPerSendSMS = true;
-    private CBHybridActivity mActivity;
 
-    private CBHybridActivity.IRequestPermissionListener mRequestPermissionListener = new CBHybridActivity.IRequestPermissionListener() {
-        @Override
-        public void onResult(int reqCode, boolean result) {
+    public CBHybridTelephonyPlugin(Context context) {
+        super(context);
+        CBHybridActivity.IRequestPermissionListener mRequestPermissionListener = new CBHybridActivity.IRequestPermissionListener() {
+            @Override
+            public void onResult(int reqCode, boolean isGranted) {
 
-            switch (reqCode) {
-                case REQ_PERMISSION_CALL_PHONE:
-                    isWaitReqPerCallPhone = false;
-                    break;
-                case REQ_PERMISSION_SEND_SMS:
-                    isWaitReqPerSendSMS = false;
-                    break;
+                switch (reqCode) {
+                    case REQ_PERMISSION_CALL_PHONE:
+                        isWaitReqPerCallPhone = false;
+                        break;
+                    case REQ_PERMISSION_SEND_SMS:
+                        isWaitReqPerSendSMS = false;
+                        break;
+                }
             }
-        }
-    };
+        };
+        addRequestPermissionListener(REQ_PERMISSION_CALL_PHONE, mRequestPermissionListener);
+        addRequestPermissionListener(REQ_PERMISSION_SEND_SMS, mRequestPermissionListener);
+    }
 
-    public CBHybridTelephonyPlugin() {
+
+    @Override
+    public String getVersionName() {
+        return "1.0.0";
+    }
+
+    @Override
+    public void onPause() {
 
     }
 
     @Override
-    public void init(Context context) {
-        mActivity = (CBHybridActivity) context;
-        mActivity.addRequestPermissionListener(REQ_PERMISSION_CALL_PHONE, mRequestPermissionListener);
-        mActivity.addRequestPermissionListener(REQ_PERMISSION_SEND_SMS, mRequestPermissionListener);
+    public void onResume() {
+
+    }
+
+    @Override
+    public void onDestroy() {
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+
     }
 
 
@@ -129,42 +148,42 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
                 @Override
                 public void onReceive(Context context, Intent intent) {
 
-                    if (mActivity.isDestroyed()) {
+                    if (getActivity().isDestroyed()) {
                         return;
                     }
 
                     switch (this.getResultCode()) {
                         case Activity.RESULT_OK: {
                             CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult("OK");
-                            mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                            sendAsyncResult(callbackID, cbHybridPluginResult);
                         }
                         break;
                         case SmsManager.RESULT_ERROR_GENERIC_FAILURE: {
                             CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_GENERIC_FAILURE);
-                            mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                            sendAsyncResult(callbackID, cbHybridPluginResult);
                         }
                         break;
                         case SmsManager.RESULT_ERROR_RADIO_OFF: {
                             CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_RADIO_OFF);
-                            mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                            sendAsyncResult(callbackID, cbHybridPluginResult);
                         }
                         break;
                         case SmsManager.RESULT_ERROR_NULL_PDU: {
                             CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_SMS_NULL_PDU);
-                            mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                            sendAsyncResult(callbackID, cbHybridPluginResult);
                         }
                         break;
                         case SmsManager.RESULT_ERROR_NO_SERVICE: {
                             CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_NO_SMS_SERVICE);
-                            mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                            sendAsyncResult(callbackID, cbHybridPluginResult);
                         }
                         break;
                         default:
                             CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_UNKNOWN);
-                            mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                            sendAsyncResult(callbackID, cbHybridPluginResult);
                     }
                     //등록 리시버 해제(중요)
-                    mActivity.unregisterReceiver(this);
+                    getActivity().unregisterReceiver(this);
                 }
             });
         } else {
@@ -186,13 +205,13 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
 
         validPhoneState();
 
-        if (ContextCompat.checkSelfPermission(mActivity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
 
-            if (ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
                     Manifest.permission.CALL_PHONE)) {
                 throw new CBHybridException(CommonBasedConstants.HYBRID_ERROR_PERMISSION_DENIED, "전화걸기 권한이 허용되지 않았습니다.");
             } else {
-                ActivityCompat.requestPermissions(mActivity,
+                ActivityCompat.requestPermissions(getActivity(),
                         new String[]{Manifest.permission.CALL_PHONE},
                         REQ_PERMISSION_CALL_PHONE);
 
@@ -206,7 +225,7 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
                 }
 
                 isWaitReqPerCallPhone = true;
-                if (ContextCompat.checkSelfPermission(mActivity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
                     throw new CBHybridException(CommonBasedConstants.HYBRID_ERROR_PERMISSION_DENIED, "전화걸기 권한이 허용되지 않았습니다.");
                 }
             }
@@ -214,7 +233,7 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
 
         Intent dialIntent = new Intent(Intent.ACTION_CALL);
         dialIntent.setData(Uri.parse("tel:" + phoneNumber));
-        mActivity.startActivity(dialIntent);
+        startActivity(dialIntent);
 
         return new CBHybridPluginResult("");
     }
@@ -233,7 +252,7 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
 
         Intent dialIntent = new Intent(Intent.ACTION_DIAL);
         dialIntent.setData(Uri.parse("tel:" + phoneNumber));
-        mActivity.startActivity(dialIntent);
+        startActivity(dialIntent);
 
         return new CBHybridPluginResult("");
     }
@@ -252,42 +271,42 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
             @Override
             public void onReceive(Context context, Intent intent) {
 
-                if (mActivity.isDestroyed()) {
+                if (getActivity().isDestroyed()) {
                     return;
                 }
 
                 switch (this.getResultCode()) {
                     case Activity.RESULT_OK: {
                         CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult("OK");
-                        mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                        sendAsyncResult(callbackID, cbHybridPluginResult);
                     }
                     break;
                     case SmsManager.RESULT_ERROR_GENERIC_FAILURE: {
                         CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_GENERIC_FAILURE);
-                        mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                        sendAsyncResult(callbackID, cbHybridPluginResult);
                     }
                     break;
                     case SmsManager.RESULT_ERROR_RADIO_OFF: {
                         CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_RADIO_OFF);
-                        mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                        sendAsyncResult(callbackID, cbHybridPluginResult);
                     }
                     break;
                     case SmsManager.RESULT_ERROR_NULL_PDU: {
                         CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_SMS_NULL_PDU);
-                        mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                        sendAsyncResult(callbackID, cbHybridPluginResult);
                     }
                     break;
                     case SmsManager.RESULT_ERROR_NO_SERVICE: {
                         CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_NO_SMS_SERVICE);
-                        mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                        sendAsyncResult(callbackID, cbHybridPluginResult);
                     }
                     break;
                     default:
                         CBHybridPluginResult cbHybridPluginResult = new CBHybridPluginResult(CommonBasedConstants.HYBRID_ERROR_UNKNOWN);
-                        mActivity.sendAsyncResult(callbackID, cbHybridPluginResult);
+                        sendAsyncResult(callbackID, cbHybridPluginResult);
                 }
                 //등록 리시버 해제(중요)
-                mActivity.unregisterReceiver(this);
+                getActivity().unregisterReceiver(this);
             }
         });
     }
@@ -308,16 +327,16 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
         validPhoneState();
 
         //퍼미션 확인
-        if (ContextCompat.checkSelfPermission(mActivity, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
 
-            if (ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
                     Manifest.permission.SEND_SMS)) {
 
                 throw new CBHybridException(CommonBasedConstants.HYBRID_ERROR_PERMISSION_DENIED, "문자보내기 권한이 허용되지 않았습니다.");
 
             } else {
 
-                ActivityCompat.requestPermissions(mActivity,
+                ActivityCompat.requestPermissions(getActivity(),
                         new String[]{Manifest.permission.SEND_SMS},
                         REQ_PERMISSION_SEND_SMS);
 
@@ -332,7 +351,7 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
 
                 isWaitReqPerSendSMS = true;
 
-                if (ContextCompat.checkSelfPermission(mActivity, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
                     throw new CBHybridException(CommonBasedConstants.HYBRID_ERROR_PERMISSION_DENIED, "문자보내기 권한이 허용되지 않았습니다.");
                 }
             }
@@ -340,8 +359,8 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
 
 
         Intent smsSendIntent = new Intent("ACTION_SMS_SEND");
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(mActivity, 0, smsSendIntent, PendingIntent.FLAG_ONE_SHOT);
-        mActivity.registerReceiver(receiver, new IntentFilter(smsSendIntent.getAction()));
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(getContext(), 0, smsSendIntent, PendingIntent.FLAG_ONE_SHOT);
+        getActivity().registerReceiver(receiver, new IntentFilter(smsSendIntent.getAction()));
         SmsManager smsManager = SmsManager.getDefault();
 
         for (int i = 0; i < smsInfo.getPhoneNumberList().size(); i++) {
@@ -372,7 +391,7 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
         Intent smsSendIntent = new Intent(Intent.ACTION_SENDTO);
         smsSendIntent.setData(Uri.parse("smsto:" + address));
         smsSendIntent.putExtra("sms_body", smsInfo.getMessage());
-        mActivity.startActivity(smsSendIntent);
+        startActivity(smsSendIntent);
     }
 
 
@@ -470,11 +489,11 @@ public class CBHybridTelephonyPlugin extends CBHybridPlugin {
      * @return
      */
     private int getPhoneState() {
-        if (isAirplaneModeOn(mActivity)) {
+        if (isAirplaneModeOn(getContext())) {
             return STATE_AIR_PLANE;
         }
 
-        if (!isSimStateReady(mActivity)) {
+        if (!isSimStateReady(getContext())) {
             return STATE_NO_SIM;
         }
 

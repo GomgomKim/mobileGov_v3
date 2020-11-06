@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.os.Build;
@@ -13,16 +14,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.ResultReceiver;
-import android.se.omapi.Session;
 import android.util.Base64;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.dkitec.PushLibrary.Listener.PushAppRegistListener;
-import com.dkitec.PushLibrary.PushLibrary;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -48,19 +42,18 @@ import java.util.concurrent.atomic.AtomicReference;
 import kr.go.mobile.agent.service.broker.BrokerService;
 import kr.go.mobile.agent.service.monitor.ILocalMonitorService;
 import kr.go.mobile.agent.service.monitor.IntegrityConfirm;
-import kr.go.mobile.agent.service.monitor.MonitorService;
 import kr.go.mobile.agent.service.monitor.SecureNetwork;
 import kr.go.mobile.agent.service.monitor.ThreatDetection;
 import kr.go.mobile.agent.service.session.ILocalSessionService;
-import kr.go.mobile.agent.service.session.SessionService;
 import kr.go.mobile.agent.service.session.UserSigned;
 import kr.go.mobile.agent.solution.Solution;
 import kr.go.mobile.agent.solution.SolutionManager;
 import kr.go.mobile.agent.utils.Aria;
 import kr.go.mobile.agent.utils.HardwareUtils;
 import kr.go.mobile.agent.utils.Log;
+import kr.go.mobile.agent.utils.PushMessageDBHelper;
 import kr.go.mobile.agent.utils.ResourceUtils;
-import kr.go.mobile.agent.v3.CommonBaseInitActivity;
+import kr.go.mobile.agent.v3.CommonBasedInitActivity;
 import kr.go.mobile.agent.v3.NotInstalledRequiredPackagesException;
 import kr.go.mobile.agent.v3.UninstallExpiredPackagesException;
 import kr.go.mobile.agent.v3.solution.DKI_LocalPushSolution;
@@ -71,49 +64,21 @@ import kr.go.mobile.mobp.iff.R;
  * 모바일 전자정부에서 사용하는 보안 에이전트 (Security Agent) 의 Application 객체
  * 객체 생성시
  */
-public class SAGTApplication extends Application implements CommonBaseInitActivity.LocalService,
+public class SAGTApplication extends Application implements CommonBasedInitActivity.LocalService,
         BrokerService.IServiceManager {
 
-    private static String TAG = "MobileGov-Core"; //SAGTApplication.class.getSimpleName();
+    private final String TAG = "MobileGov-Core"; //SAGTApplication.class.getSimpleName();
     private final String PREFIX_LOGFILE = "crash-log-%s.log";
     private final DateFormat SUFFIX_LOGFILE = new SimpleDateFormat("yyMMddHHmmss", Locale.KOREAN);
-
-    // Service 로 부터 실시간 데이터를 전달 받는다. (Service --> Application)
-    // 현재 사용되지 않고 있음.
-    @Deprecated
-    private ResultReceiver receiverMonitor = new ResultReceiver(new Handler()) {
-        @Override
-        protected void onReceiveResult(int resultCode, Bundle resultData) {
-            super.onReceiveResult(resultCode, resultData);
-            switch (resultCode) {
-                case MonitorService.RESULT_SECURE_NETWORK_EXPIRED: {
-                    Log.d(TAG, "보안 네트워크 대기 시간을 초과하였습니다. 실행 중인 행정앱을 종료합니다.");
-                    break;
-                }
-                case MonitorService.RESULT_SECURE_NETWORK_FAIL: {
-                    handleFailMessage(resultData);
-                    break;
-                }
-            }
-        }
-
-        private void handleFailMessage(Bundle resultData) {
-            String message = resultData.getString("message", "알수없음");
-            Log.d(TAG, "실패 메시지 - " + message);
-        }
-    };
 
     private ServiceConnection localServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-
             if (service instanceof ILocalSessionService) {
                 Log.d(TAG, "(세션) 로컬 서비스에 연결되었습니다. - " + service.hashCode());
-                Log.concurrency(Thread.currentThread(), "CREATE - SESSION ");
                 SESSION = SessionManager.create(service);
             } else if (service instanceof ILocalMonitorService) {
                 Log.d(TAG, "(모니터) 로컬 서비스에 연결되었습니다. - " + service.hashCode());
-                Log.concurrency(Thread.currentThread(), "CREATE - MONITOR");
                 MONITOR = MonitorManager.create(service);
             } else {
                 throw new IllegalStateException("정의되지 않은 로컬서비스에 연결되었습니다.");
@@ -131,164 +96,92 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
     private SessionManager SESSION;
     private MonitorManager MONITOR;
 
-    String[] resultCheckedSolution;
+    String[] resultCheckPackages;
     private boolean printTimeStamp = true;
     private boolean exportLog = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.DEBUG = true;
-        Log.timeStamp("application-init");
+        Log.DEBUG = getResources().getBoolean(R.bool.config_log_debug);
+        Log.TC = getResources().getBoolean(R.bool.config_log_tc);
+        Log.TIMESTAMP = getResources().getBoolean(R.bool.config_log_timestamp);
+
         try {
             checkPackages();
-            resultCheckedSolution = new String[0];
+            resultCheckPackages = new String[0];
             SessionManager.bindService(this, localServiceConnection);
             MonitorManager.bindService(this, localServiceConnection);
-            Log.TC("서비스 바인딩 요청");
 
             Runtime.getRuntime().addShutdownHook(new Thread(){
                 @Override
                 public void run(){
-                    Log.e(TAG, "----- Application.onShutdownHook ----- ");
+                    Log.v(TAG, "----- Application.onShutdownHook ----- ");
                 }
             });
 
-            /* TODO 필요에 따라서 구현
-            registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
-                @Override
-                public void onActivityCreated(@NotNull Activity activity, @Nullable Bundle savedInstanceState) {
-//        Log.d(TAG, "onActivityCreated - " + activity.toString());
-                }
-
-                @Override
-                public void onActivityStarted(@NotNull Activity activity) {
-//        Log.d(TAG, "onActivityStarted - " + activity.toString());
-                }
-
-                @Override
-                public void onActivityResumed(Activity activity) {
-                    setTopActivity(activity);
-//        Log.d(TAG, "onActivityResumed - " + activity.toString());
-                }
-
-                @Override
-                public void onActivityPaused(@NotNull Activity activity) {
-//        Log.d(TAG, "onActivityPaused - " +activity.toString());
-                    changeStatus(activity);
-                    Enumeration<Activity> keys = resumeActivities.keys();
-                    int resumeCount = 0;
-                    while(keys.hasMoreElements()) {
-                        Activity a = keys.nextElement();
-                        if (a == null) continue;
-                        boolean isResume = resumeActivities.get(a);
-
-                        if (isResume) {
-                            resumeCount++;
-                        }
-//            Log.d(TAG, a.toString() + " status(resume) = " + isResume);
-                    }
-                    if (resumeCount == 0) {
-//            Log.e(TAG, "force finish");
-//            finishApplication();
-                        // TODO 사용자가 홈키로 나갈 경우 종료 ?
-                    }
-                }
-
-                @Override
-                public void onActivityStopped(@NotNull Activity activity) {}
-
-                @Override
-                public void onActivitySaveInstanceState(@NotNull Activity activity, @NotNull Bundle outState) {}
-
-                @Override
-                public void onActivityDestroyed(@NotNull Activity activity) {
-                    deleteTopActivity(activity);
-                }
-            });
-            */
-            setPush();
+            registerActivityLifeCycle(false /*현재는 사용 안함*/);
+            enableLocalPush();
             startCrashMonitor();
         } catch (UninstallExpiredPackagesException e) {
-            resultCheckedSolution = new String[] {
+            resultCheckPackages = new String[] {
                     "REMOVE",
                     String.format("라이선스 만료로 %s 앱을 삭제해야 합니다. 삭제 후 다시 실행해주시기 바랍니다.", e.getPackageLabel())
             };
         } catch (NotInstalledRequiredPackagesException e) {
-            resultCheckedSolution = new String[] {
+            resultCheckPackages = new String[] {
                     "INSTALL",
                     String.format("공통기반 서비스 지원을 위한 %s 앱을 설치해야 합니다. 설치 후 다시 실행해주시기 바립니다.", e.getPackageLabel())
             };
         } catch (Exception e) {
-            resultCheckedSolution = new String[] {
+            resultCheckPackages = new String[] {
                     "ERROR",
                     "앱 검사를 진행할 수 없습니다. 종료 후 다시 실행해주시기 바랍니다."
             };
         }
     }
 
-    void setPush() {
-
-        if (false) {
-            Toast.makeText(this, "등록시도...", Toast.LENGTH_SHORT).show();
-            android.util.Log.d("TEST", "등록시도..");
-            final String serverAddress = new Aria(getString(R.string.MagicMRSLicense)).decrypt(getString(R.string.pushServer));
-            final String appID = getString(R.string.pushAppId);
-            int ret = PushLibrary.getInstance().setStart(this, serverAddress, appID);
-            android.util.Log.d("TEST", "setStart : " + ret);
-
-            String cn = "01086431234";
-            // PUSH 서비스 등록 요청
-            ret = PushLibrary.getInstance().AppRegist(this, new PushAppRegistListener() {
-
+    void enableLocalPush() {
+        try {
+            Solution<String, Bundle> pushSolution = SolutionManager.initSolutionModule(getApplicationContext(), SolutionManager.LOCAL_PUSH);
+            pushSolution.setDefaultEventListener(new Solution.EventListener<Bundle>() {
                 @Override
-                public void didRegistResult(Context context, Bundle bundle) {
-                    // 요청 결과 확인
-                    String code = bundle.getString("RT");
-                    String msg = bundle.getString("RT_MSG");
+                public void onCompleted(Context context, Solution.Result<Bundle> result) {
+                    Bundle bundle = (Bundle) result.out;
+                    String code = bundle.getString("RT", "/*정의되지 않음*/");
+                    String msg = bundle.getString("RT_MSG", "/*알수없음*/");
                     if (code.equals("0000")) {
-                        //Toast.makeText(this, "등록 성공", Toast.LENGTH_SHORT).show();
+                        PushMessageDBHelper.newInstance(context);
+                        // TEST CODE - BEGIN //
+                        try {
+                            JSONObject oo = new JSONObject();
+                            oo.put("type", "1");
+                            oo.put("msg", "공통기반 시스템 점검으로 인하여 서비스 제공이 불안정할 수 있습니다.");
+                            Bundle b = new Bundle();
+                            b.putString("requestid", "124536");
+                            b.putString("alert", "공통기반 시스템 점검");
+                            b.putString("message", oo.toString());
+                            DKI_LocalPushSolution.PushMessage m = DKI_LocalPushSolution.PushMessage.create(b);
+                            PushMessageDBHelper.insertNotice(m);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        // TEST CODE - END //
+                        Log.d(DKI_LocalPushSolution.TAG, "로컬 푸시 등록 성공");
                     } else {
-                        //Toast.makeText(this, "Code = " + code + ", Message = " + msg, Toast.LENGTH_LONG).show();
+                        Log.e(DKI_LocalPushSolution.TAG, "로컬 푸시 등록 실패 ("  + msg + ")");
                     }
-                    android.util.Log.d("TEST", "등록응답: Code = " + code + ", Message = " + msg);
                 }
 
-            }, cn, null, null);
-            android.util.Log.d("TEST", "AppRegist : " + ret);
-            Toast.makeText(this, "등록 시도 - 정상", Toast.LENGTH_SHORT).show();
-            android.util.Log.d("TEST", "등록 시도 - 정상");
-        } else {
-            // TODO
-            try {
-                Solution pushSolution = SolutionManager.initSolutionModule(getApplicationContext(), SolutionManager.PUSH);
-                pushSolution.setDefaultEventListener(new Solution.EventListener() {
-                    @Override
-                    public void onCompleted(Context context, Solution.Result result) {
-                        Bundle bundle = (Bundle) result.out;
-                        Log.d(TAG, bundle.toString());
-                        // push 등록 결과
-                        String code = bundle.getString("RT", "");
-                        String msg = bundle.getString("RT_MSG", "");
-                        if (code.equals("0000")) {
-                            Log.d(TAG, "로컬푸쉬 등록성공");
-                        } else {
-                            Log.d(TAG, "로컬푸쉬 등록실패 ("  + msg + ")");
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Context context, String message, Throwable t) {
-
-                    }
-                });
-                ((DKI_LocalPushSolution) SolutionManager.getSolutionModule(SolutionManager.PUSH))
-                        .execute(getApplicationContext(), "123456");
-                ////////////
-            } catch (SolutionManager.ModuleNotFoundException e) {
-                // TODO 메시지 재설정 필요.
-                throw new RuntimeException("dddd");
-            }
+                @Override
+                public void onFailure(Context context, String message, Throwable t) {
+                    Log.e(DKI_LocalPushSolution.TAG, "");
+                }
+            });
+            pushSolution.execute(getApplicationContext(), HardwareUtils.getAndroidID(this));
+            ////////////
+        } catch (SolutionManager.ModuleNotFoundException e) {
+            throw new RuntimeException("로컬 푸시 솔루션을 연계할 수 없습니다.");
         }
     }
 
@@ -304,14 +197,26 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
     }
 
     @Override
-    public void executeSolution(@NotNull Bundle extra) {
-        MONITOR.setAnotherConfirm(extra);
+    public void executeMonitor(@NotNull Bundle extra) {
+        MONITOR.execute(extra);
     }
 
     @Override
-    public void monitorPackage() {
-        Bundle info = MONITOR.getRunningPackageInfo();
-        MONITOR.addMonitorPackage(info);
+    public void enabledMonitorPackage(String packageName, Bundle pkgInfo) {
+        try {
+            PackageInfo packageInfo = getPackageManager().getPackageInfo(packageName, 0);
+            String versionCode;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionCode = String.valueOf(packageInfo.getLongVersionCode());
+            } else {
+                versionCode = String.valueOf(packageInfo.versionCode);
+            }
+            pkgInfo.putString("app_id", packageInfo.packageName);
+            pkgInfo.putString("app_version", packageInfo.versionName + "(" + versionCode + ")");
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new RuntimeException("실행중인 행정앱 정보를 획득할 수 없습니다.");
+        }
+        MONITOR.addMonitorPackage(pkgInfo);
     }
 
 
@@ -322,11 +227,11 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
 
     @Override
     public String[] checkSecureSolution() {
-        return resultCheckedSolution;
+        return resultCheckPackages;
     }
 
     @Override
-    public void takeReadyLocalService(final CommonBaseInitActivity.TakeListener<Bundle> listener, final Bundle extra) {
+    public void takeReadyLocalService(final CommonBasedInitActivity.TakeListener<Void> listener) {
         this.forceStopLoadingActivity = false;
         new Thread(new Runnable() {
             @Override
@@ -334,7 +239,7 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
                 do {
                     if (forceStopLoadingActivity) break;
                     if (SESSION == null || MONITOR == null) continue;
-                    listener.onTake(extra);
+                    listener.onTake(null);
                     break;
                 } while (true);
             }
@@ -342,7 +247,7 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
     }
 
     @Override
-    public void takeVerifiedAgent(final CommonBaseInitActivity.TakeListener<IntegrityConfirm.STATUS> listener) {
+    public void takeVerifiedAgent(final CommonBasedInitActivity.TakeListener<IntegrityConfirm.STATUS> listener) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -360,7 +265,7 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
     }
 
     @Override
-    public void takeThreatsEnv(final CommonBaseInitActivity.TakeListener<ThreatDetection.STATUS> listener) {
+    public void takeThreatsEnv(final CommonBasedInitActivity.TakeListener<ThreatDetection.STATUS> listener) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -378,9 +283,8 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
         }, "wait for safe device status").start();
     }
 
-
     @Override
-    public void takeGenerateSigned(final CommonBaseInitActivity.TakeListener<UserSigned.STATUS> listener, Context context) {
+    public void takeGenerateSigned(final CommonBasedInitActivity.TakeListener<UserSigned.STATUS> listener, Context context) {
         if(printTimeStamp) {
             Log.timeStamp("application-init");
             printTimeStamp = false;
@@ -415,7 +319,7 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
     }
 
     @Override
-    public void taskConnectedSecureNetwork(final CommonBaseInitActivity.TakeListener<SecureNetwork.STATUS> listener) {
+    public void taskConnectedSecureNetwork(final CommonBasedInitActivity.TakeListener<SecureNetwork.STATUS> listener) {
         ////// SSL-VPN 솔루션에 종속적인 코드임. (SSL-VPN 에 로그인하기 위하여 사전에 정의된 ID 생성) //////////
         String hardwareID = HardwareUtils.getAndroidID(this);
         String signedUserDN = SESSION.getUserDN();
@@ -447,7 +351,7 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
     }
 
     @Override
-    public void takeConfirmCertification(final CommonBaseInitActivity.TakeListener<String> listener) {
+    public void takeConfirmCertification(final CommonBasedInitActivity.TakeListener<String> listener) {
         Intent intent = new Intent(this, BrokerService.class);
         startService(intent);
         new Thread(new Runnable() {
@@ -771,6 +675,59 @@ public class SAGTApplication extends Application implements CommonBaseInitActivi
     // TODO 공통기반 초기화 화면에서 사용자가 홈키로 나갈 경우 초기화 처리를 강제 중지해야 함.
     final ConcurrentHashMap<Activity, Boolean> resumeActivities = new ConcurrentHashMap<>();
     final AtomicReference<Activity> topActivity = new AtomicReference<>();
+
+    void registerActivityLifeCycle(boolean enabled) {
+        if (!enabled) return;
+
+        registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityCreated(@NotNull Activity activity, @Nullable Bundle savedInstanceState) {
+                Log.d(TAG, "onActivityCreated - " + activity.toString());
+            }
+
+            @Override
+            public void onActivityStarted(@NotNull Activity activity) {
+                Log.d(TAG, "onActivityStarted - " + activity.toString());
+            }
+
+            @Override
+            public void onActivityResumed(Activity activity) {
+                setTopActivity(activity);
+                Log.d(TAG, "onActivityResumed - " + activity.toString());
+            }
+
+            @Override
+            public void onActivityPaused(@NotNull Activity activity) {
+                changeStatus(activity);
+                Enumeration<Activity> keys = resumeActivities.keys();
+                int resumeCount = 0;
+                while(keys.hasMoreElements()) {
+                    Activity a = keys.nextElement();
+                    if (a == null) continue;
+                    boolean isResume = resumeActivities.get(a);
+
+                    if (isResume) {
+                        resumeCount++;
+                    }
+                    Log.d(TAG, a.toString() + " status(resume) = " + isResume);
+                }
+                if (resumeCount == 0) {
+                    Log.e(TAG, "force finish");
+                }
+            }
+
+            @Override
+            public void onActivityStopped(@NotNull Activity activity) {}
+
+            @Override
+            public void onActivitySaveInstanceState(@NotNull Activity activity, @NotNull Bundle outState) {}
+
+            @Override
+            public void onActivityDestroyed(@NotNull Activity activity) {
+                deleteTopActivity(activity);
+            }
+        });
+    }
 
     @Deprecated
     public Activity getTopActivity() {

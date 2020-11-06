@@ -15,8 +15,6 @@ import static java.lang.Class.forName;
 
 public abstract class Solution<IN, OUT> {
 
-
-
     public enum RESULT_CODE {
         _OK,        // 정상 처리
         _FAIL,      // 처리 실패(에러)
@@ -75,6 +73,7 @@ public abstract class Solution<IN, OUT> {
 
 
     public Solution(Context context) {
+
     }
 
     public void setDefaultEventListener(EventListener<OUT> listener) {

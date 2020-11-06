@@ -10,6 +10,7 @@ import kr.go.mobile.agent.service.broker.BrokerResponse;
 import kr.go.mobile.agent.service.broker.Document;
 import kr.go.mobile.agent.service.broker.IBrokerService;
 import kr.go.mobile.agent.service.broker.IBrokerServiceCallback;
+import kr.go.mobile.common.v3.CommonBasedConstants;
 
 public class Caller implements Callable<Response>, Runnable {
     private static final Object sPoolSync = new Object();
@@ -71,7 +72,6 @@ public class Caller implements Callable<Response>, Runnable {
      *
      * @param request
      */
-    @Deprecated
     public Response execute(Request request) throws ExecutionException, InterruptedException {
         defaultSetting(false, request, null);
         return BrokerManager.submit(this);
@@ -109,8 +109,8 @@ public class Caller implements Callable<Response>, Runnable {
     public void run() {
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
         if (this.isAsynchronous()) {
+            final int callerId = hashCode();
             try {
-                final int callerId = hashCode();
                 service.enqueue(request.task, new IBrokerServiceCallback.Stub() {
                     @Override
                     public void onResponse(BrokerResponse response) {
@@ -123,7 +123,7 @@ public class Caller implements Callable<Response>, Runnable {
                     }
                 });
             } catch (RemoteException e) {
-                this.listener.onFailure(100, "", e);
+                BrokerManager.handleResponse(callerId, CommonBasedConstants.BROKER_ERROR_FAILED_REQUEST, e.getMessage());
             }
         } else {
             Log.e("Caller.run()", "ERROR ::: "+Thread.currentThread().getName());
@@ -131,14 +131,17 @@ public class Caller implements Callable<Response>, Runnable {
     }
 
     @Override
-    public Response call() throws Exception {
-        // TODO 미구현
-        Log.e("Caller.call()", Thread.currentThread().getName());
-        if (!this.isAsynchronous()) {
+    public Response call() {
+        android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+        try {
             BrokerResponse response = service.execute(request.task);
             return Response.convert(response);
+        } catch (RemoteException e) {
+            return Response.makeError(0, "");
+        } catch (Exception e) {
+            // TODO !!
+            return null;
         }
-        return null;
     }
 
     private void clear() {

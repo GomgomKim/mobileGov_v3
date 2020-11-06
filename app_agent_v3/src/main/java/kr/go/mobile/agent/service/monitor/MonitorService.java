@@ -10,27 +10,22 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
-import android.os.Process;
 import android.os.RemoteException;
-import android.os.ResultReceiver;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import kr.go.mobile.agent.app.MonitorManager;
 import kr.go.mobile.agent.solution.Solution;
 import kr.go.mobile.agent.solution.Solution.EventListener;
 import kr.go.mobile.agent.solution.SolutionManager;
 import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.common.v3.CommonBasedConstants;
 import kr.go.mobile.mobp.iff.R;
+import kr.go.mobile.support.v2.Utils;
 
 public class MonitorService extends Service {
 
@@ -38,15 +33,10 @@ public class MonitorService extends Service {
 
     public static final String MONITOR_REMOVE_ADMIN_PACKAGE = "kr.go.mobile.command.MONITOR_REMOVE_ADMIN_PACKAGE";
 
-    public static final int RESULT_SECURE_NETWORK_FAIL = 3001;
-    public static final int RESULT_SECURE_NETWORK_IDLE = 3002;
-    public static final int RESULT_SECURE_NETWORK_EXPIRED = 3003;
-
     // 보안 네트워크를 overtime 동안 사용하고 있지 않음.
     private static final int MONITOR_SECURE_NETWORK_OVERTIME = 0;
     // 실행 중인 행정앱이 존재하지 않음.
     private static final int MONITOR_SECURE_NETWORK_NO_RUNNING_PACKAGE = 1;
-
 
     private class LocalMonitorServiceBinder extends Binder implements ILocalMonitorService {
 
@@ -66,6 +56,7 @@ public class MonitorService extends Service {
             }
         };
 
+        private ConcurrentMap<Integer, Bundle> monitorItem = new ConcurrentHashMap<>();
         private SecureNetwork secureNetwork;
         private ThreatDetection threatDetection;
         private IntegrityConfirm integrityConfirm;
@@ -131,7 +122,6 @@ public class MonitorService extends Service {
                 threatDetection = new ThreatDetection(context, SolutionManager.V_GUARD, new EventListener<ThreatDetection.STATUS>() {
                     @Override
                     public void onFailure(Context context, String message, Throwable t) {
-                        //integrityConfirm.setConfirm(message);
                         Log.e(TAG, message, t);
                     }
 
@@ -168,17 +158,23 @@ public class MonitorService extends Service {
                 Log.d(TAG, "보안 네트워크 모니터링 시작");
                 secureNetwork.monitor();
             } else {
-                Log.d(TAG, "보안 네트워크 모니터링 중지");
+                Log.d(TAG, "보안 네트워크 모니터링 중지 / 인증세션초기화");
+
+                // 인증 세션 초기화
+                Intent i = new Intent("auth_session_clean");
+                startService(i);
+
+                // 보안 네트워크 중지
                 secureNetwork.disabledMonitor();
+
+                // 구동 중이던 행정앱 종료 요청
                 if (!monitorItem.isEmpty()) {
                     // 공통기반 v2.x 호환을 위함.
-                    Intent intent = new Intent("kr.go.mobile.ACTION_CONTROL");
-                    intent.putExtra("extra_type", 100 /*KILL*/);
-                    sendBroadcast(intent);
-                    // TODO 구동 중이던 행정앱 종료 (공통기반 3.0 코드 추가)
-                    Set<String> keys = monitorItem.keySet();
-                    for (String key : keys) {
-                        Bundle info = monitorItem.get(key);
+                    Utils.sendFinishApp(MonitorService.this);
+
+                    Set<Integer> monitorUids = monitorItem.keySet();
+                    for (int uid : monitorUids) {
+                        Bundle info = monitorItem.get(uid);
                         Message m = Message.obtain(null, CommonBasedConstants.CMD_FORCE_KILL_DISABLED_SECURE_NETWORK);
                         try {
                             ((Messenger)info.get("replyTo")).send(m);
@@ -257,11 +253,16 @@ public class MonitorService extends Service {
             integrityConfirm.clear();
         }
 
+
+        public void monitorTarget(int reqUid, Bundle reqPkgInfo) {
+            monitorItem.put(reqUid, reqPkgInfo);
+        }
+
         @Override
         public void addPackage(Bundle info) {
             monitorHandler.removeMessages(MONITOR_SECURE_NETWORK_NO_RUNNING_PACKAGE);
 
-            String uid = info.getString("req_id");
+            int uid = info.getInt("req_id");
             if (monitorItem.containsKey(uid)) {
                 Messenger replyTo = monitorItem.get(uid).getParcelable("replyTo");
                 info.putParcelable("replyTo", replyTo);
@@ -282,6 +283,18 @@ public class MonitorService extends Service {
             }
         }
 
+        @Override
+        public String getPackageName(int uid) {
+            Bundle packageInfo = monitorItem.get(uid);
+            return packageInfo.getString("app_id", "/*NO_INFO*/");
+        }
+
+        @Override
+        public String getVersionCode(int uid) {
+            Bundle packageInfo = monitorItem.get(uid);
+            return packageInfo.getString("app_code", "/*NO_INFO*/");
+        }
+
         private void resetMonitorSecureNetwork(boolean enabled) {
             monitorHandler.removeMessages(MONITOR_SECURE_NETWORK_OVERTIME);
             if (enabled) {
@@ -292,33 +305,33 @@ public class MonitorService extends Service {
         public void waitAndStop() {
             monitorHandler.sendEmptyMessageDelayed(MONITOR_SECURE_NETWORK_NO_RUNNING_PACKAGE, getResources().getInteger(R.integer.SECURE_NETWORK_WAIT_FOR_NO_RUNNING_PACKAGE) * 1000);
         }
+
     }
 
     private LocalMonitorServiceBinder localMonitor;
-    private ConcurrentMap<String, Bundle> monitorItem = new ConcurrentHashMap<>();
+
     final Messenger monitorMessenger = new Messenger(new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             int req_uid = msg.arg1;
             if (req_uid == -1) return;
-            switch (msg.what) {
-                case CommonBasedConstants.EVENT_COMMAND_HANDLER_REGISTERED:
-                    Bundle baseBundle = new Bundle();
-                    baseBundle.putParcelable("replyTo", msg.replyTo);
-                    monitorItem.put(String.valueOf(req_uid), baseBundle);
-                    break;
-                default:
+            if (msg.what == CommonBasedConstants.EVENT_COMMAND_HANDLER_REGISTERED) {
+                Bundle baseBundle = new Bundle();
+                baseBundle.putParcelable("replyTo", msg.replyTo);
+                localMonitor.monitorTarget(req_uid, baseBundle);
             }
         }
     });
 
     @Override
+    public void onCreate() {
+        localMonitor = new LocalMonitorServiceBinder(this);
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         String action = intent.getAction();
         if (Objects.equals(action, "local")) {
-            if (localMonitor == null)
-                localMonitor = new LocalMonitorServiceBinder(this);
-
             return localMonitor;
         } else {
             return monitorMessenger.getBinder();
@@ -331,13 +344,11 @@ public class MonitorService extends Service {
         if (Objects.equals(action, "local")) {
             // 로컬 서비스가 언바인딩 되는 경우는 앱 종료 ?
         } else {
-            String targetUid = intent.getStringExtra("req_id");
-            Log.d(TAG, "unbind target : " + targetUid);
+            int removeId = intent.getIntExtra("req_id", -1);
 
-            String removeId = intent.getStringExtra("req_id");
-            monitorItem.remove(removeId);
+            localMonitor.monitorItem.remove(removeId);
             Log.d(TAG, "모니터링 대상 제거 - " + removeId);
-            if (monitorItem.isEmpty()) {
+            if (localMonitor.monitorItem.isEmpty()) {
                 Log.d(TAG, "재실행 행정앱 대기");
                 localMonitor.waitAndStop();
             }
@@ -347,17 +358,7 @@ public class MonitorService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flag, int serviceId) {
-        String command = intent.getAction();
-        if (command == null) throw new NullPointerException("서비스 커멘드가 존재하지 않습니다.");
-        switch (command) {
-            case MONITOR_REMOVE_ADMIN_PACKAGE:
-                String removeId = intent.getStringExtra("req_id");
-
-                break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + command);
-        }
-        return START_NOT_STICKY;
+        throw new IllegalStateException("Unexpected value: " + intent);
     }
 
 }

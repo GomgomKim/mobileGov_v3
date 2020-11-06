@@ -32,7 +32,7 @@ public class HttpTask implements Runnable {
 	private String serviceID;
 	private ArrayList<String> params;
 	private IRemoteServiceCallback callback;
-	
+
 	private final IResponseListener listener = new IResponseListener() {
 		String TAG = "HttpTask.IResponseListener";
 		@Override

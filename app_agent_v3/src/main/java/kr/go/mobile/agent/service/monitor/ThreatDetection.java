@@ -21,10 +21,10 @@ public class ThreatDetection {
         _ERROR;
     }
 
-    private Solution<?, ?> threatDetectionSolution;
+    private Solution<?, ThreatDetection.STATUS> threatDetectionSolution;
     private STATUS status;
 
-    public ThreatDetection(Context context, String solutionName, Solution.EventListener listener) throws SolutionManager.ModuleNotFoundException {
+    public ThreatDetection(Context context, String solutionName, Solution.EventListener<ThreatDetection.STATUS> listener) throws SolutionManager.ModuleNotFoundException {
         threatDetectionSolution = SolutionManager.initSolutionModule(context, solutionName);
         threatDetectionSolution.setDefaultEventListener(listener);
     }

@@ -26,13 +26,13 @@ public class SecureNetwork {
         _DISCONNECTED;
     }
 
-    private Solution<?, ?> secureNetworkSolution;
+    private Solution<?, SecureNetwork.STATUS> secureNetworkSolution;
     String loginId;
     String loginPw;
     CMD command;
     String errorMessage;
 
-    public SecureNetwork(Context context, String solutionName, Solution.EventListener listener) throws SolutionManager.ModuleNotFoundException {
+    public SecureNetwork(Context context, String solutionName, Solution.EventListener<SecureNetwork.STATUS> listener) throws SolutionManager.ModuleNotFoundException {
         secureNetworkSolution = SolutionManager.initSolutionModule(context, solutionName);
         secureNetworkSolution.setDefaultEventListener(listener);
     }

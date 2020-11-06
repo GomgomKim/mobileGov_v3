@@ -3,12 +3,13 @@ package kr.go.mobile.common.v3;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,7 +22,6 @@ import kr.go.mobile.common.v3.broker.SSO;
 import kr.go.mobile.common.v3.document.DocConvertManager;
 import kr.go.mobile.common.v3.broker.BrokerManager;
 import kr.go.mobile.common.v3.document.DefaultDocumentActivity;
-import kr.go.mobile.common.v3.utils.TC_LOG;
 
 /**
  * 공통기반 네이티브 API
@@ -36,21 +36,16 @@ import kr.go.mobile.common.v3.utils.TC_LOG;
 public class CommonBasedAPI {
 
     private static final String TAG = CommonBasedAPI.class.getSimpleName();
-    private static final int STATUS_NONE = 4 >> 3; // 000
-    private static final int STATUS_BROKER_READY = 4 >> 2; // 01
-    private static final int STATUS_INTEGRITY_APP = 4 >> 1; // 10
-    private static final int STATUS_ALL_READY = STATUS_BROKER_READY | STATUS_INTEGRITY_APP; // 4 >> 0; // 11
+    private static final int STATUS_NONE = 4 >> 3; // 0 (000)
+    private static final int STATUS_ERROR = 4 >> 0; // 4 (100)
+    private static final int STATUS_BROKER_READY = 4 >> 1; // 2 (010)
+    private static final int STATUS_INTEGRITY_APP = 4 >> 2; // 1 (001)
+    private static final int STATUS_ALL_READY = STATUS_BROKER_READY | STATUS_INTEGRITY_APP; // 3 (011)
+    private static boolean isFinish = false;
     private static CommonBasedAPI baseAPI;
 
-    static void initialize(CBApplication api, String packageName, String apiVersion, boolean installedLauncher, boolean grantedPermission, int countStackTrace) {
-        CommonBasedAPI common = new CommonBasedAPI(api);
-        common.mThisPackageName = packageName;
-        common.mApiVersionName = apiVersion;
-        common.installedLauncher = installedLauncher;
-        common.grantedPermission = grantedPermission;
-        common.countStackTrace = countStackTrace;
-        CommonBasedAPI.baseAPI = common;
-    }
+    private static Thread t;
+    private static Thread w;
 
     static CommonBasedAPI getInstance() {
         if(CommonBasedAPI.baseAPI == null) {
@@ -67,58 +62,97 @@ public class CommonBasedAPI {
      * @param requestCode 공통기반 초기화 요청시 개발자가 지정하는 코드값 (요청에 대한 응답 확인시 확인함)
      *
      */
-    public static void startCommonBaseInitActivityForResult(final Activity callerActivity, final int requestCode) {
-        Log.d(TAG, "---- 보안 에이전트 서비스 연결 요청");
+    public static void startInitActivityForResult(final Activity callerActivity, final int requestCode) {
+        isFinish = true;
+        if (t != null) {
+            t.interrupt();
+            t = null;
+        }
+        if (w != null) {
+            w.interrupt();
+            w = null;
+        }
+
         ((CBApplication)callerActivity.getApplication()).bindBrokerService();
-        ((CBApplication)callerActivity.getApplication()).bindMonitorService();
 
         int result_code = CommonBasedConstants.RESULT_OK;
         final AtomicInteger status = new AtomicInteger(STATUS_NONE);
         try {
             if (!getInstance().installedLauncher) {
-                TC_LOG.e("", "보안 Agent 설치 확인 : 실패");
                 result_code = CommonBasedConstants.RESULT_COMMON_NOT_INSTALLED_AGENT;
-//                throw new RuntimeException(callerActivity.getString(R.string.iff_guide_not_installed_and_required_agent));
+                Utils.TC("보안 에이전트 : 미설치");
                 return;
             }
-            TC_LOG.i("", "보안 Agent 설치 확인 : 정상");
+            Utils.TC("보안 에이전트 : 설치");
 
             if (!getInstance().grantedPermission) {
-                TC_LOG.e("", "보안 Agent 권한 확인 : 실패");
+                Utils.TC("브로커 서비스 사용 권한: 거부");
                 result_code = CommonBasedConstants.RESULT_COMMON_DENIED_AGENT_PERMISSION;
-//                throw new RuntimeException(callerActivity.getString(R.string.iff_guide_this_app_reinstall));
                 return;
             }
-            TC_LOG.i("", "보안 Agent 권한 확인 : 정상");
+            Utils.TC("브로커 서비스 사용 권한: 획득");
         } catch (Exception e) {
             Log.e(TAG, "GPKI 로그인을 진행할 수 없습니다. (사유 : " + e.getMessage() +")");
-            return;
+            result_code = CommonBasedConstants.RESULT_COMMON_BIND_FAILED_SECURE_SERVICE;
         } finally {
             if (result_code != CommonBasedConstants.RESULT_OK) {
                 getInstance().showDialog(callerActivity, result_code);
+                return;
             }
         }
 
-        new Thread(new Runnable() {
+        // 지정시간동안 브로커 서비스 바인딩이 안되면 앱 종료
+        t = new Thread(new Runnable() {
+            int checkMillis = 100;
+            @Override
+            public void run() {
+                int waitMillis = 0;
+                while(waitMillis < checkMillis * 100 /*10초*/) {
+                    try {
+                        Thread.sleep(checkMillis);
+                        waitMillis += checkMillis;
+                    } catch (InterruptedException ignored) {
+                    }
+                    if (isFinish ||
+                            (status.get() & STATUS_BROKER_READY) == STATUS_BROKER_READY) {
+                        return;
+                    }
+                }
+                if ((status.get() & STATUS_BROKER_READY) != STATUS_BROKER_READY ) {
+                    status.getAndSet(STATUS_ERROR);
+
+                }
+            }
+        });
+
+        w = new Thread(new Runnable() {
             @Override
             public void run() {
                 CBApplication app = (CBApplication) callerActivity.getApplication();
                 do {
-                    // TODO TIMEOUT 설정하여 무한으로 대기하지 않도록 한다.
-                } while (app.getBroker(false) == null);
+                    if (status.get() == STATUS_ERROR) {
+                        getInstance().showDialog(callerActivity, CommonBasedConstants.RESULT_COMMON_BIND_FAILED_SECURE_SERVICE);
+                        isFinish = true;
+                        return;
+                    }
+                    if (isFinish) {
+                        return;
+                    }
+                } while (app.getBroker() == null);
                 status.getAndAdd(STATUS_BROKER_READY);
-                TC_LOG.i("", "보안 Agent 서비스 연결 확인 : 정상");
             }
-        }).start();
+        });
 
-        TC_LOG.d("", "보안 토큰 획득");
+        isFinish = false;
+        t.start();
+        w.start();
+
         // 보안 토큰 획득 -> 보안토큰 미획득시 팝업 후 앱 종료
-        EversafeHelper.getInstance().initialize(callerActivity.getString(R.string.iff_msm_url));
+        EversafeHelper.getInstance().initialize(Utils.getMsmURL(callerActivity));
         new EversafeHelper.GetVerificationTokenTask() {
             @Override
             protected void onCompleted(byte[] verificationToken, String verificationTokenAsByte64, boolean isEmergency) {
                 if (isEmergency) {
-                    TC_LOG.e("", "보안 토큰 획득 : 실패 (Emergency) " + verificationTokenAsByte64);
                     Log.e(TAG, callerActivity.getString(R.string.iff_guide_check_network));
                     if(callerActivity.isDestroyed() || callerActivity.isFinishing()) {
                         return;
@@ -126,7 +160,7 @@ public class CommonBasedAPI {
                     getInstance().showDialog(callerActivity, CommonBasedConstants.RESULT_COMMON_INTEGRITY_APP_INVALID_URL);
                 } else {
                     status.getAndAdd(STATUS_INTEGRITY_APP);
-                    TC_LOG.i("", "보안 토큰 획득 : 정상");
+                    Utils.TC("무결성 검증 : 토큰 획득");
                     Log.d(TAG, String.format("보안토큰을 획득하였습니다. (%s)", verificationTokenAsByte64));
                     while (status.compareAndSet(STATUS_ALL_READY, STATUS_NONE)) {
                         getInstance().requestLaunchSecurityAgent(callerActivity, requestCode, verificationTokenAsByte64);
@@ -137,7 +171,6 @@ public class CommonBasedAPI {
             @Override
             protected void onTimeover() {
                 super.onTimeover();
-                TC_LOG.e("", "보안 토큰 획득 : 실패 (타임아웃)");
                 if(callerActivity.isDestroyed() || callerActivity.isFinishing()) {
                     return;
                 }
@@ -147,7 +180,6 @@ public class CommonBasedAPI {
             @Override
             protected void onCancelled() {
                 super.onCancelled();
-                TC_LOG.e("", "보안 토큰 획득 : 실패 (취소)");
                 if(callerActivity.isDestroyed() || callerActivity.isFinishing()) {
                     return;
                 }
@@ -157,7 +189,6 @@ public class CommonBasedAPI {
             @Override
             protected void onTerminated() {
                 super.onTerminated();
-                TC_LOG.e("", "보안 토큰 획득 : 실패");
                 if(callerActivity.isDestroyed() || callerActivity.isFinishing()) {
                     return;
                 }
@@ -166,12 +197,52 @@ public class CommonBasedAPI {
         }.setTimeout(60000).execute();
     }
 
-    public static void onActivityResult(Activity activity, int resultCode, Intent intent) {
-        // TODO
+    @Deprecated
+    public static String handleInitActivityResult(Activity callerActivity, int resultCode, Intent intent) throws CommonBaseAPIException {
+        switch (resultCode) {
+            case CommonBasedConstants.RESULT_OK: {
+                Utils.TC("공통기반 서비스 : 초기화");
+                // TODO 사용자 DN
+                return "";
+            }
+            case CommonBasedConstants.RESULT_AGENT_EXIST_LICENSE_EXPIRED_PACKAGE:
+            case CommonBasedConstants.RESULT_AGENT_FAILURE_USER_AUTHENTICATION:
+            case CommonBasedConstants.RESULT_AGENT_INSTALL_REQUIRED_PACKAGE:
+            case CommonBasedConstants.RESULT_AGENT_INTERNAL_ERROR:
+            case CommonBasedConstants.RESULT_AGENT_INVALID:
+            case CommonBasedConstants.RESULT_AGENT_SOLUTION_ERROR:
+            case CommonBasedConstants.RESULT_AGENT_UNSAFE_DEVICE:
+            default:
+                // TODO 메시지 정의
+                throw new CommonBaseAPIException("");
+        }
     }
 
+
+    /**
+     * 공통기반 시스템의 인증 서버로부터 획득한 인증정보를 공유한다.
+     *
+     * @return SSO -
+     * @throws CommonBaseAPIException
+     */
     public static SSO getSSO() throws CommonBaseAPIException {
+        Utils.TC("공통기반 서비스: SSO 사용자 인증");
         return getInstance().getUserAuth();
+    }
+
+    /**
+     * 비동기 방식의 호출 방식으로 입력되는 request 에 대한 응답은 같이 입력된 callback 을 통해서 리턴한다.
+     */
+    public static void call(String serviceId, String serviceParams, Response.Listener listener) throws CommonBaseAPIException {
+        switch (serviceId) {
+            case CommonBasedConstants.BROKER_ACTION_LOAD_DOCUMENT:
+            case CommonBasedConstants.BROKER_ACTION_CONVERT_STATUS_DOC:
+                break;
+            default:
+                Utils.TC("공통기반 서비스: 기관서비스");
+        }
+        Request request = Request.basic(serviceId, serviceParams);
+        getInstance().enqueue(request, listener);
     }
 
     /**
@@ -180,8 +251,7 @@ public class CommonBasedAPI {
      * @param request
      * @return Response
      */
-    @Deprecated
-    public static Response execute(Request request) throws CommonBaseAPIException {
+    protected static Response execute(Request request) throws CommonBaseAPIException {
         Caller caller = Caller.obtain();
         try {
             return caller.execute(request);
@@ -192,20 +262,29 @@ public class CommonBasedAPI {
         }
     }
 
-    /**
-     * 비동기 방식의 호출 방식으로 입력되는 request 에 대한 응답은 같이 입력된 callback 을 통해서 리턴한다.
-     *
-     * @param request
-     * @param listener
-     */
-    public static void enqueue(Request request, Response.Listener listener) throws CommonBaseAPIException {
-        Caller caller = Caller.obtain();
-        try {
-            caller.enqueue(request, listener);
-        } catch (RuntimeException e) {
-            caller.recycle();
-            throw new CommonBaseAPIException("비동기 요청 (" + request.toString() + ") 시도를 할 수 없습니다.", e);
+    // 제한적인 기능으로 RestrictedAPI 클래스를 이용해서 접근해야 함.
+    protected static Response executeUpload(String fileName, String absolutePath, String relayUrl, String extraParams) throws CommonBaseAPIException {
+        return executeUpload(fileName, Uri.parse(absolutePath), relayUrl, extraParams);
+    }
+
+    // 제한적인 기능으로 RestrictedAPI 클래스를 이용해서 접근해야 함.
+    protected static Response executeUpload(String fileName, Uri targetUri, String relayUrl, String extraParams) throws CommonBaseAPIException {
+        Request req = Request.upload(RestrictedAPI.key, fileName, targetUri, relayUrl, extraParams);
+        if (req == null) {
+            throw new CommonBasedAPI.CommonBaseAPIException("제한된 기능으로 사용할 수 없습니다.");
         }
+        Utils.TC("공통기반 서비스: 업로드");
+        return getInstance().doUpload(req);
+    }
+
+    // 제한적인 기능으로 RestrictedAPI 클래스를 이용해서 접근해야 함.
+    protected static Response executeDownload(String relayUrl, String absolutePath) throws CommonBaseAPIException {
+        Request req = Request.download(RestrictedAPI.key, relayUrl, Uri.parse(absolutePath));
+        if (req == null) {
+            throw new CommonBasedAPI.CommonBaseAPIException("제한된 기능으로 사용할 수 없습니다.");
+        }
+        Utils.TC("공통기반 서비스: 다운로드");
+        return getInstance().doDownload(req);
     }
 
     /**
@@ -217,8 +296,8 @@ public class CommonBasedAPI {
         i.putExtra(CommonBasedConstants.EXTRA_DOC_URL, reqDocFileURL);
         i.putExtra(CommonBasedConstants.EXTRA_DOC_FILE_NAME, reqDocFileName);
         i.putExtra(CommonBasedConstants.EXTRA_DOC_CREATED, createdDate);
-        i.putExtra("LOG", true);
         context.startActivity(i);
+        Utils.TC("공통기반 서비스: 기본 문서뷰어");
     }
 
     public static DocConvertManager createDocConvertManager(String url, String fileName, String createdDate) throws DocConvertManager.DocConvertException {
@@ -270,6 +349,11 @@ public class CommonBasedAPI {
                         messageId = R.string.iff_guide_check_network;
                         break;
                     }
+                    case CommonBasedConstants.RESULT_COMMON_BIND_FAILED_SECURE_SERVICE: {
+                        titleId = R.string.iff_not_ready_service;
+                        messageId = R.string.iff_failed_secure_service;
+                        break;
+                    }
                     default:{
                         titleId = -1;
                         messageId = -1;
@@ -288,22 +372,25 @@ public class CommonBasedAPI {
 
     private void requestLaunchSecurityAgent(Activity callerActivity, int requestCode, String verificationTokenByte64) {
         Intent i = new Intent(CommonBasedConstants.ACTION_LAUNCH_SECURITY_AGENT);
+        i.setPackage(Utils.getLauncherName(callerActivity));
 
-        i.setPackage(callerActivity.getString(R.string.iff_launcher_pkg));
-
+        // 공통기반 정보
+        i.putExtra("req_id", Process.myUid());
         i.putExtra("extra_token", verificationTokenByte64);
         i.putExtra("api_version", mApiVersionName);
-        i.putExtra("app_label", callerActivity.getString(callerActivity.getApplicationContext().getApplicationInfo().labelRes));
-        i.putExtra("app_id", callerActivity.getPackageName());
+        i.putExtra("stack_trace_count", countStackTrace);
 
         try {
-            PackageInfo packageInfo = callerActivity.getPackageManager().getPackageInfo(callerActivity.getPackageName(), 0);
-            i.putExtra("app_version_name", packageInfo.versionName);
+            int labelRes = callerActivity.getPackageManager()
+                    .getPackageInfo(callerActivity.getPackageName(), 0)
+                    .applicationInfo.labelRes;
+
+            i.putExtra("app_label", callerActivity.getString(labelRes));
         } catch (PackageManager.NameNotFoundException e) {
-            i.putExtra("app_version_name", "unsupported version name");
+            throw new RuntimeException("실행중인 행정앱 정보를 획득할 수 없습니다.");
         }
-        i.putExtra("req_id", String.valueOf(Process.myUid()));
-        i.putExtra("stack_trace_count", countStackTrace);
+
+        ((CBApplication)callerActivity.getApplication()).bindMonitorService();
         callerActivity.startActivityForResult(i, requestCode);
     }
 
@@ -332,33 +419,62 @@ public class CommonBasedAPI {
         // obtainCaller() 를 이용하여 획득한 Caller 를 개발자가 관리하고 필요에 따라 취소하는 것이 좋을 것 같음.
     }
 
-    public SSO getUserAuth() throws CommonBaseAPIException {
-        TC_LOG.d("sb-01", "getGPKICert 호출");
-
+    SSO getUserAuth() throws CommonBaseAPIException {
         try {
-            SSO sso = SSO.create();
-            TC_LOG.d("sb-01", "getGPKICert 호출 성공 : " + sso);
-            return sso;
+            return SSO.create();
         } catch (NullPointerException e) {
             throw new CommonBaseAPIException("브로커 서비스를 재연결 중입니다.", e);
         } catch (RemoteException e) {
-            TC_LOG.e("sb-01", "getGPKICert 호출 실패 : " + e.getMessage());
             throw new CommonBaseAPIException("사용자 정보 요청 중 에러가 발생하였습니다.", e);
+        }
+    }
+
+    void enqueue(Request request, Response.Listener listener) throws CommonBaseAPIException {
+        Caller caller = Caller.obtain();
+        try {
+            caller.enqueue(request, listener);
+        } catch (RuntimeException e) {
+            caller.recycle();
+            throw new CommonBaseAPIException("비동기 요청 (" + request.toString() + ") 시도를 할 수 없습니다.", e);
+        }
+    }
+
+    /**
+     * 단말의 데이터를 공통기반을 이용하여 기관서버로 전달
+     */
+    Response doUpload(Request request) throws CommonBaseAPIException {
+        try {
+            request.validTargetUri(api.getBaseContext());
+        } catch (IOException e) {
+            throw new CommonBaseAPIException("해당 파일을 읽을 수 없습니다 (" + e.getMessage() +")", e);
+        }
+        Caller caller = Caller.obtain();
+        try {
+            return caller.execute(request);
+        } catch (ExecutionException | InterruptedException e) {
+            throw new CommonBaseAPIException("동기 요청 (" + request.toString() + ") 시도를 할 수 없습니다.", e);
+        } finally {
+            caller.recycle();
         }
     }
 
     /**
      * 기관 서버의 데이터를 공통기반을 이용하여 단말로 가져옴
      */
-    public void doDownload() {
-        api.getBroker();
-    }
-
-    /**
-     * 단말의 데이터를 공통기반을 이용하여 기관서버로 전달
-     */
-    public void doUpload() {
-        api.getBroker();
+    Response doDownload(Request request) throws CommonBaseAPIException {
+        try {
+            request.validTargetUri(api.getBaseContext(), false);
+        } catch (IOException e) {
+            throw new CommonBaseAPIException("다운로드 위치를 읽을 수 없습니다 (" + e.getMessage() +")", e);
+        }
+        Caller caller = Caller.obtain();
+        try {
+            return caller.execute(request);
+        } catch (ExecutionException | InterruptedException e) {
+            throw new CommonBaseAPIException("동기 요청 (" + request.toString() + ") 시도를 할 수 없습니다.", e);
+        } finally {
+            caller.recycle();
+        }
     }
 
     public void destroy() {
@@ -366,8 +482,43 @@ public class CommonBasedAPI {
     }
 
     public static class CommonBaseAPIException extends Exception {
+        public CommonBaseAPIException(String s) {
+            super(s);
+        }
         public CommonBaseAPIException(String s, Throwable e) {
             super(s, e);
+        }
+    }
+
+    static class Initializer {
+        private CommonBasedAPI common;
+        public Initializer(CBApplication api) {
+            common = new CommonBasedAPI(api);
+            common.mThisPackageName = api.getPackageName();
+        }
+
+        public Initializer setCommonBasedApiVersion(String apiVersion) {
+            common.mApiVersionName = apiVersion;
+            return this;
+        }
+
+        public Initializer setInstalledLauncher(boolean installedLauncher) {
+            common.installedLauncher = installedLauncher;
+            return this;
+        }
+
+        public Initializer setGrantedPermission(boolean grantedPermission) {
+            common.grantedPermission = grantedPermission;
+            return this;
+        }
+
+        public Initializer setCountStackTrace(int countStackTrace) {
+            common.countStackTrace = countStackTrace;
+            return this;
+        }
+
+        public void init() {
+            CommonBasedAPI.baseAPI = common;
         }
     }
 }

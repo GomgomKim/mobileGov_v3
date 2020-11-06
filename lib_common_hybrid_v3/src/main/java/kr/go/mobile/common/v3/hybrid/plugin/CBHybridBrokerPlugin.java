@@ -1,6 +1,7 @@
 package kr.go.mobile.common.v3.hybrid.plugin;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -17,17 +18,39 @@ import kr.go.mobile.common.v3.broker.Response;
 import kr.go.mobile.common.v3.broker.SSO;
 import kr.go.mobile.common.v3.hybrid.CBHybridException;
 
-public class CBHybridBrokerPlugin extends CBHybridPlugin  {
+public abstract class CBHybridBrokerPlugin extends CBHybridPlugin  {
 
     final String DOC_URL = "docUrl";
     final String DOC_NAME = "docName";
     final String DOC_CREATED_DATE = "docCreatedDate";
 
-    Context context;
+    protected CBHybridBrokerPlugin(Context context) {
+        super(context);
+    }
 
     @Override
-    public void init(Context context) {
-        this.context = context;
+    public String getVersionName() {
+        return "3.0.0";
+    }
+
+    @Override
+    public void onPause() {
+
+    }
+
+    @Override
+    public void onResume() {
+
+    }
+
+    @Override
+    public void onDestroy() {
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+
     }
 
     public CBHybridPluginResult getSSO() throws CBHybridException {
@@ -50,20 +73,19 @@ public class CBHybridBrokerPlugin extends CBHybridPlugin  {
 
             String serviceID = o.getString("serviceId");
             String serviceParams = o.getString("serviceParams");
-            Request request = Request.basic(serviceID, serviceParams);
 
-            CommonBasedAPI.enqueue(request, new Response.Listener() {
+            CommonBasedAPI.call(serviceID, serviceParams, new Response.Listener() {
                 @Override
                 public void onSuccess(Response response) {
                     int code = response.getErrorCode();
                     String result = response.getResponseString();
-                    sendAsyncResult(context, callbackID, new CBHybridPluginResult(result));
+                    sendAsyncResult(callbackID, new CBHybridPluginResult(result));
                 }
 
                 @Override
                 public void onFailure(int errorCode, String errMessage, Throwable t) {
                     t.printStackTrace();
-                    sendAsyncResult(context, callbackID, new CBHybridPluginResult(errMessage));
+                    sendAsyncResult(callbackID, new CBHybridPluginResult(errMessage));
                 }
             });
         } catch (CommonBasedAPI.CommonBaseAPIException e) {
@@ -92,7 +114,7 @@ public class CBHybridBrokerPlugin extends CBHybridPlugin  {
                 reqDocFileName = jsonObject.getString(DOC_NAME);
                 reqDocCreatedDate = jsonObject.getString(DOC_CREATED_DATE);
 
-                CommonBasedAPI.startDefaultDocViewActivity(context, reqDocFileURL, reqDocFileName, reqDocCreatedDate);
+                CommonBasedAPI.startDefaultDocViewActivity(getContext(), reqDocFileURL, reqDocFileName, reqDocCreatedDate);
             } else {
                 throw new JSONException("");
             }
@@ -102,4 +124,6 @@ public class CBHybridBrokerPlugin extends CBHybridPlugin  {
             throw new CBHybridException(CommonBasedConstants.HYBRID_ERROR_INVALID_PARAMETER, "정의되지 않은 형태로 입력되었거나 필수 값이 존재하지 않습니다.");
         }
     }
+
+
 }

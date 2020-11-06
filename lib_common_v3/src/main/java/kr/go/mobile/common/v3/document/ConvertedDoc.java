@@ -4,12 +4,14 @@ import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Message;
 
+import kr.go.mobile.agent.service.broker.Document;
+
 public class ConvertedDoc {
 
     int pageDoc;
     Bitmap bitmapDoc;
 
-    public ConvertedDoc(int pageDocImage, Bitmap bitmap) {
+    protected ConvertedDoc(int pageDocImage, Bitmap bitmap) {
         this.pageDoc = pageDocImage;
         this.bitmapDoc = bitmap;
     }

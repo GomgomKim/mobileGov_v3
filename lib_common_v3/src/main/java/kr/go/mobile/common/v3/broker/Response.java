@@ -1,16 +1,11 @@
 package kr.go.mobile.common.v3.broker;
 
-import org.json.JSONObject;
-
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-
 import kr.go.mobile.agent.service.broker.BrokerResponse;
-import kr.go.mobile.agent.service.broker.Document;
 import kr.go.mobile.agent.service.broker.MethodResponse;
 import kr.go.mobile.common.v3.CommonBasedConstants;
 
 public class Response {
+
 
     public interface Listener {
         /**
@@ -24,7 +19,7 @@ public class Response {
         void onFailure(int errorCode, String errMessage, Throwable t);
     }
 
-    public static Response convert(BrokerResponse brokerResponse) {
+    public static Response convert(BrokerResponse<?> brokerResponse) {
         if (brokerResponse.getCode() == CommonBasedConstants.BROKER_ERROR_NONE) {
             MethodResponse data = brokerResponse.getResult();
             return new Response(data);
@@ -32,11 +27,15 @@ public class Response {
         return new Response(brokerResponse.getCode(), brokerResponse.getErrorMessage());
     }
 
+    public static Response makeError(int error, String cause) {
+        return new Response(error, cause);
+    }
+
     int errorCode;
     String errorMessage;
     Throwable errorThrowable;
 
-    public MethodResponse resp;
+    MethodResponse resp;
 
     private Response(MethodResponse resp) {
         this.errorCode = CommonBasedConstants.BROKER_ERROR_NONE;
@@ -53,6 +52,14 @@ public class Response {
         this.errorThrowable = t;
     }
 
+    public boolean OK() {
+        return this.getErrorCode() == CommonBasedConstants.BROKER_ERROR_NONE;
+    }
+
+    public <T extends MethodResponse> T getResponse() {
+        return (T) resp;
+    }
+
     public int getErrorCode() {
         return this.errorCode;
     }
@@ -62,6 +69,6 @@ public class Response {
     }
 
     public String getResponseString() {
-        return this.resp.data;
+        return this.resp.getServiceServerResponse();
     }
 }

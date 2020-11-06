@@ -352,6 +352,9 @@ public class DefaultDocumentActivity extends AppCompatActivity {
     }
 
     private void showFinishDialog(String msg) {
+        if (this.isDestroyed()) {
+            return;
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("문서변환에러");
         builder.setMessage(msg);
@@ -378,6 +381,10 @@ public class DefaultDocumentActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         if (System.currentTimeMillis() - prevPressedTime <= DURATION_TIME) {
+            if (toastMsg != null) {
+                toastMsg.cancel();
+                toastMsg = null;
+            }
             super.onBackPressed();
         } else {
             prevPressedTime = System.currentTimeMillis();

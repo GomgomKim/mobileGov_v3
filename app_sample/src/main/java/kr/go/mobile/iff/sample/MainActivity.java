@@ -1,5 +1,6 @@
 package kr.go.mobile.iff.sample;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -37,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickLocalPush(View view) {
-        PushLibrary.getInstance().GetPushConfig(new PushGetConfigListener() {
+        PushLibrary.getInstance().GetPushConfig(this, new PushGetConfigListener() {
             @Override
             public void didGetConfigResult(Bundle bundle) {
                 Log.d("TEST", bundle.toString());
@@ -52,10 +53,10 @@ public class MainActivity extends AppCompatActivity {
 
         String cn = getIntent().getStringExtra("cn");
         // PUSH 서비스 등록 요청
-        boolean ss = PushLibrary.getInstance().AppRegist(new PushAppRegistListener() {
+        int ss = PushLibrary.getInstance().AppRegist(this, new PushAppRegistListener() {
 
             @Override
-            public void didRegistResult(Bundle bundle) {
+            public void didRegistResult(Context context, Bundle bundle) {
                 // 요청 결과 확인
                 String code = bundle.getString("RT");
                 String msg = bundle.getString("RT_MSG");
@@ -67,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("TEST", "등록응답: Code = " + code + ", Message = " + msg);
 
             }
-        }, cn, null);
+        }, cn, null, null);
         Toast.makeText(this, "등록 시도 - 정상", Toast.LENGTH_SHORT).show();
         Log.d("TEST", "등록 시도 - 정상");
 

@@ -2,10 +2,8 @@ package kr.go.mobile.common.v3.broker;
 
 import android.os.RemoteException;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONStringer;
 
 import kr.go.mobile.agent.service.broker.UserAuthentication;
 
@@ -13,6 +11,7 @@ public class SSO {
 
     public static SSO create() throws RemoteException {
         UserAuthentication authentication = BrokerManager.getUserAuth();
+        Log.TC("브로커 >> 행정앱 : SSO 사용자 인증");
         return new SSO(authentication);
     }
 

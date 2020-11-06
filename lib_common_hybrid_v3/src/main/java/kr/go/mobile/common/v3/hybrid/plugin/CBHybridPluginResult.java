@@ -44,6 +44,12 @@ public class CBHybridPluginResult {
         this.retMsg = "" + retVal;
     }
 
+    public CBHybridPluginResult(int status, String msg) {
+        this.status = status;
+        this.retMsg = JSONObject.quote(msg);
+    }
+
+
     public void setStatus(int status) {
         this.status = status;
     }

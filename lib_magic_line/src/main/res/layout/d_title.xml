@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/d_bg_title" >
@@ -10,7 +11,8 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="5dp"
         android:layout_marginTop="20dp"
-        android:background="@drawable/d_home" >
+        android:background="@drawable/d_home"
+        android:layout_marginStart="5dp">
     </ImageButton>
 
     <ImageView
@@ -20,18 +22,20 @@
         android:layout_centerInParent="true"
         android:background="@drawable/d_title_01"
         android:text="@string/app_name"
-        android:textSize="25dp" >
+        android:textSize="25sp" >
     </ImageView>
 
     <Button
         android:id="@+id/btnmanage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:layout_marginRight="5dp"
         android:layout_marginTop="5dp"
+        android:layout_marginEnd="5dp"
+        android:layout_marginRight="5dp"
         android:background="@drawable/d_manage"
-        android:visibility="invisible" >
-    </Button>
+        android:visibility="invisible"
+        tools:visibility="visible" />
 
 </RelativeLayout>

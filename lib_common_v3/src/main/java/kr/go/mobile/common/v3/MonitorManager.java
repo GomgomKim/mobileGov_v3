@@ -1,9 +1,9 @@
 package kr.go.mobile.common.v3;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
@@ -12,14 +12,13 @@ import android.os.RemoteException;
 
 import kr.go.mobile.common.R;
 
-public final class MonitorManager {
+class MonitorManager {
 
     private Messenger eventMonitorMessenger;
 
-    public static void bindService(Context context, ServiceConnection connection) {
+    public static void bindService(Context context, String launcherName, ServiceConnection connection) {
         Intent i = new Intent("kr.go.mobile.action.MONITOR_SERVICE");
-        i.setPackage(context.getString(R.string.iff_launcher_pkg));
-        i.putExtra("req_id", Process.myUid());
+        i.setPackage(launcherName);
         context.bindService(i, connection, Context.BIND_AUTO_CREATE
                 | Context.BIND_ADJUST_WITH_ACTIVITY | Context.BIND_ABOVE_CLIENT | Context.BIND_DEBUG_UNBIND
                 | Context.BIND_IMPORTANT | Context.BIND_WAIVE_PRIORITY /*| Context.BIND_EXTERNAL_SERVICE*/);

@@ -4,11 +4,13 @@ package kr.go.mobile.agent.utils;
 import java.util.HashMap;
 import java.util.Map;
 
+import kr.go.mobile.mobp.iff.BuildConfig;
+
 public class Log {
 	
 	public static boolean DEBUG = false;
-	public static boolean TC = true;
-	public static boolean TIMESTAMP = true;
+	public static boolean TC = false;
+	public static boolean TIMESTAMP = false;
 
 	public static void v(String tag, String msg) {
 		if (DEBUG)
@@ -48,21 +50,21 @@ public class Log {
 
 	//// 개발 도구
 	public static void TC(String message) {
-		if (TC)
+		if (TC && BuildConfig.DEBUG)
 			android.util.Log.i("@___TEST_CASE___@", message);
 	}
 
 	static Map<String, Long> tmp = new HashMap<>();
 	public static void timeStamp(String tag) {
 		if(TIMESTAMP) {
-		if (tmp.containsKey(tag)) {
-			Long now = System.currentTimeMillis();
-			Long old = tmp.remove(tag);
-			e("TIME-STAMP", tag + " - " + (now - old) + " ms");
-		} else {
-			tmp.put(tag, System.currentTimeMillis());
+			if (tmp.containsKey(tag)) {
+				Long now = System.currentTimeMillis();
+				Long old = tmp.remove(tag);
+				e("TIME-STAMP", tag + " - " + (now - old) + " ms");
+			} else {
+				tmp.put(tag, System.currentTimeMillis());
+			}
 		}
-	}
 	}
 
 	public static void concurrency(Thread t, String message) {

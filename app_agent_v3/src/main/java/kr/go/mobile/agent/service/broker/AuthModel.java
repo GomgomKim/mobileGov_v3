@@ -7,6 +7,7 @@ import android.os.Parcelable;
     Retrofit2 - Gson convert return 위한 POJO
     Tom 200914
      */
+@Deprecated
 public class AuthModel implements Parcelable {
     MethodResponse methodResponse;
 

@@ -1,6 +1,5 @@
 package kr.go.mobile.iff.sample;
 
-
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
@@ -14,7 +13,6 @@ import com.sds.mobiledesk.mdhybrid.NewMDHybridActivity;
 
 import kr.go.mobile.iff.sample.hybrid.UserActivityPlugin;
 
-
 public class HybridActivity extends NewMDHybridActivity {
 
 	Context mContext;
@@ -26,7 +24,7 @@ public class HybridActivity extends NewMDHybridActivity {
 		
 		WebView.setWebContentsDebuggingEnabled(true);
 		
-		this.mContext = this;  
+		this.mContext = this;
 		
 		String dn = getIntent().getStringExtra("dn"); 
 		String cn = getIntent().getStringExtra("cn"); 

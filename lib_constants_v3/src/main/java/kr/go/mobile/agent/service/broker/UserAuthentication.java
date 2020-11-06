@@ -20,8 +20,8 @@ public class UserAuthentication extends MethodResponse {
     public String verifyStateLDAP;
 
 
-    public UserAuthentication() {
-        super();
+    public UserAuthentication(String id, String result, String code, String msg) {
+        super(id, result, code, msg);
     }
 
     protected UserAuthentication(Parcel in) {
@@ -63,7 +63,17 @@ public class UserAuthentication extends MethodResponse {
         return departmentCode;
     }
 
-    public void clear() {
+    public void reset() {
+        userDN =
+        userID =
+        ouName =
+        ouCode =
+        departmentName =
+        departmentCode =
+        nickName =
+        verifyState =
+        verifyStateCert =
+        verifyStateLDAP = null;
     }
 
     @Override
@@ -73,6 +83,7 @@ public class UserAuthentication extends MethodResponse {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        super.writeToParcel(dest, flags);
         dest.writeString(userDN);
         dest.writeString(userID);
         dest.writeString(ouName);

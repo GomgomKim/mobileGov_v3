@@ -79,7 +79,7 @@ public class OldBrokerService extends Service {
 
 
                         if(code == CommonBasedConstants.BROKER_ERROR_NONE){
-                            String respMessage = (response.getResult()).data;
+                            String respMessage = response.getResult().getServiceServerResponse();
                             // 데이터 들어왔을 때
                             if (respMessage.length() > 20000 ) {
                                 // largeResult 일 경우 파일로 전달.
@@ -117,7 +117,7 @@ public class OldBrokerService extends Service {
                                     }
                                 }
                             } else {
-                                callback.success(response.getResult().data);
+                                callback.success(respMessage);
                             }
                         } else {
                             String errMessage = response.getErrorMessage();
@@ -260,11 +260,7 @@ public class OldBrokerService extends Service {
                 Log.d(TAG, " - header (ignore) :: " + header);
                 Log.d(TAG, " - filePath :: " + filePath);
                 Log.d(TAG, " - parameters :: " + parameter);
-                BrokerTask task = BrokerTask.obtain(BrokerService.CMM_SERVICE_FILE_UPLOAD);
-                task.serviceParam = parameter;
-                task.serviceLocalPath = filePath;
                 throw new RemoteException("지원하지 않는 기능입니다.");
-                //realBrokerService.enqueue(task, getDataCallback(callback));
             }
 
             @Override

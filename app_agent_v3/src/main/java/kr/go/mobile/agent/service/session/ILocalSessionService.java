@@ -11,4 +11,5 @@ public interface ILocalSessionService {
     UserSigned getUserSigned();
     UserAuthentication getUserAuthentication();
     void clear();
+    void confirm(UserAuthentication authentication) throws SessionService.InvalidatedAuthException;
 }

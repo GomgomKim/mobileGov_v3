@@ -24,8 +24,19 @@ public class BrokerResponse<T extends MethodResponse> implements Parcelable {
         this.obj = obj;
     }
 
+    public boolean ok() {
+        return this.getCode() == CommonBasedConstants.BROKER_ERROR_NONE;
+    }
+
     public int getCode() {
         return code;
+    }
+
+    public String getErrorMessage() {
+        if (code > 0)
+            return message;
+        else
+            return null;
     }
 
     public T getResult() {
@@ -38,12 +49,6 @@ public class BrokerResponse<T extends MethodResponse> implements Parcelable {
         obj =  in.readParcelable(getClass().getClassLoader());
     }
 
-    public String getErrorMessage() {
-        if (code > 0)
-            return message;
-        else
-            return null;
-    }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {

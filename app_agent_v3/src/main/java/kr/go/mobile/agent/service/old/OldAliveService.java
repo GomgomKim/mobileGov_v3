@@ -8,6 +8,7 @@ import android.os.RemoteException;
 import androidx.annotation.Nullable;
 
 import kr.go.mobile.agent.app.MonitorManager;
+import kr.go.mobile.agent.service.monitor.MonitorService;
 import kr.go.mobile.agent.utils.Log;
 import kr.go.mobile.iff.service.IAliveService;
 
@@ -29,8 +30,14 @@ public class OldAliveService extends Service {
     public boolean onUnbind(Intent intent) {
         String unbindTarget = intent.getStringExtra("extra_package");
         Log.d(TAG, "unbind target : " + unbindTarget);
-        // 공통기반 라이브러리 2.x.x 를 사용하는 행정앱이 완전히 종료될 때 이벤트 발생.
-        MonitorManager.removeMonitorPackage(this, unbindTarget);
+
+        // TODO 동작 확인 필요.
+        Intent removeIntent = new Intent(this, MonitorService.class);
+        removeIntent.setAction(MonitorService.MONITOR_REMOVE_ADMIN_PACKAGE);
+        removeIntent.putExtra("extra_package", unbindTarget);
+        removeIntent.putExtra("req_id", Integer.MAX_VALUE);
+        startService(removeIntent);
+
         return super.onUnbind(intent);
     }
 }
